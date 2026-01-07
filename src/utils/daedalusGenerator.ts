@@ -1,0 +1,152 @@
+/**
+ * Daedalus Script Generator for Gothic NPCs
+ * Generates valid Daedalus script code from NPC configuration
+ */
+
+import type { NPCConfig } from '../types/npc'
+import { getHeadTextureIndex } from '../data/textures'
+
+/**
+ * Map NPC type to Daedalus constant
+ */
+function getNPCTypeConstant(type: NPCConfig['npcType']): string {
+  const map: Record<NPCConfig['npcType'], string> = {
+    main: 'NPCTYPE_MAIN',
+    ambient: 'NPCTYPE_AMBIENT',
+    friend: 'NPCTYPE_FRIEND',
+  }
+  return map[type]
+}
+
+/**
+ * Get the visual MDS file based on gender
+ * Gothic uses different skeleton files for male/female
+ */
+function getVisualMDS(gender: 'male' | 'female'): string {
+  return gender === 'male' ? 'HUMANS.MDS' : 'HUMANS.MDS' // Same file for both, typically
+}
+
+/**
+ * Format armor instance for Mdl_SetVisualBody
+ * Returns -1 for no armor, or the armor instance name
+ */
+function formatArmorInstance(armor: string | null): string {
+  return armor ? armor : '-1'
+}
+
+/**
+ * Generate complete Daedalus script for an NPC
+ */
+export function generateDaedalusScript(config: NPCConfig): string {
+  const {
+    instanceName,
+    displayName,
+    gender,
+    npcType,
+    guild,
+    level,
+    voice,
+    id,
+    bodyMesh,
+    bodyTexture,
+    skinColor,
+    headMesh,
+    headTexture,
+    teethTexture,
+    armorInstance,
+    fatness,
+    strength,
+    dexterity,
+    manaMax,
+    hitpointsMax,
+    fightTactic,
+    waypoint,
+  } = config
+
+  // Get actual head texture index (female textures start at different offset)
+  const actualHeadTexture = getHeadTextureIndex(headMesh, headTexture)
+
+  const script = `// Generated NPC: ${displayName}
+// Instance: ${instanceName}
+
+instance ${instanceName} (Npc_Default)
+{
+    // Identity
+    name        = "${displayName}";
+    npctype     = ${getNPCTypeConstant(npcType)};
+    guild       = ${guild};
+    level       = ${level};
+    voice       = ${voice};
+    id          = ${id};
+
+    // Attributes
+    attribute[ATR_STRENGTH]      = ${strength};
+    attribute[ATR_DEXTERITY]     = ${dexterity};
+    attribute[ATR_MANA_MAX]      = ${manaMax};
+    attribute[ATR_MANA]          = ${manaMax};
+    attribute[ATR_HITPOINTS_MAX] = ${hitpointsMax};
+    attribute[ATR_HITPOINTS]     = ${hitpointsMax};
+
+    // Visuals
+    Mdl_SetVisual(self, "${getVisualMDS(gender)}");
+    Mdl_SetVisualBody(self, "${bodyMesh}", ${bodyTexture}, ${skinColor}, "${headMesh}", ${actualHeadTexture}, ${teethTexture}, ${formatArmorInstance(armorInstance)});
+
+    // Body configuration
+    B_Scale(self);
+    Mdl_SetModelFatness(self, ${fatness.toFixed(1)});
+
+    // Combat
+    fight_tactic = ${fightTactic};
+
+    // Talents
+    Npc_SetTalentSkill(self, NPC_TALENT_1H, 0);
+    Npc_SetTalentSkill(self, NPC_TALENT_2H, 0);
+    Npc_SetTalentSkill(self, NPC_TALENT_BOW, 0);
+    Npc_SetTalentSkill(self, NPC_TALENT_CROSSBOW, 0);
+
+    // Daily routine
+    daily_routine = Rtn_Start_${instanceName};
+};
+
+// Daily routine function
+func void Rtn_Start_${instanceName}()
+{
+    TA_Stand_Guarding(08, 00, 20, 00, "${waypoint}");
+    TA_Stand_Guarding(20, 00, 08, 00, "${waypoint}");
+};
+`
+
+  return script
+}
+
+/**
+ * Generate just the Mdl_SetVisualBody line
+ * Useful for quick reference
+ */
+export function generateVisualBodyLine(config: NPCConfig): string {
+  const actualHeadTexture = getHeadTextureIndex(config.headMesh, config.headTexture)
+
+  return `Mdl_SetVisualBody(self, "${config.bodyMesh}", ${config.bodyTexture}, ${config.skinColor}, "${config.headMesh}", ${actualHeadTexture}, ${config.teethTexture}, ${formatArmorInstance(config.armorInstance)});`
+}
+
+/**
+ * Validate instance name for Daedalus compatibility
+ * - Must start with a letter
+ * - Only alphanumeric and underscores
+ * - All uppercase recommended
+ */
+export function validateInstanceName(name: string): { valid: boolean; error?: string } {
+  if (!name) {
+    return { valid: false, error: 'Instance name is required' }
+  }
+  if (!/^[A-Z]/.test(name)) {
+    return { valid: false, error: 'Must start with a letter' }
+  }
+  if (!/^[A-Z0-9_]+$/.test(name)) {
+    return { valid: false, error: 'Only letters, numbers, and underscores allowed' }
+  }
+  if (name.length > 64) {
+    return { valid: false, error: 'Name too long (max 64 characters)' }
+  }
+  return { valid: true }
+}
