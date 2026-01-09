@@ -168,6 +168,112 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
 }
 
 /**
+ * Discover available skin colors for a specific body variant
+ */
+export function discoverSkinColorsForBodyVariant(
+  bodyId: string,
+  variant: number,
+  gameVersion: GameVersion,
+  gender: Gender
+): number[] {
+  const skinColors = new Set<number>()
+  
+  for (const [path] of Object.entries(textureFiles)) {
+    const info = parseTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.category === 'body' &&
+        info.variant === variant) {
+      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
+      const textureBase = info.baseName.replace(/_/g, '_')
+      
+      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
+        skinColors.add(info.skinColor)
+      }
+    }
+  }
+  
+  return Array.from(skinColors).sort((a, b) => a - b)
+}
+
+/**
+ * Discover available body variants for a specific skin color
+ */
+export function discoverBodyVariantsForSkinColor(
+  bodyId: string,
+  skinColor: number,
+  gameVersion: GameVersion,
+  gender: Gender
+): number[] {
+  const variants = new Set<number>()
+  
+  for (const [path] of Object.entries(textureFiles)) {
+    const info = parseTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.category === 'body' &&
+        info.skinColor === skinColor) {
+      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
+      const textureBase = info.baseName.replace(/_/g, '_')
+      
+      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
+        variants.add(info.variant)
+      }
+    }
+  }
+  
+  return Array.from(variants).sort((a, b) => a - b)
+}
+
+/**
+ * Discover available head variants for a specific skin color
+ */
+export function discoverHeadVariantsForSkinColor(
+  headId: string,
+  skinColor: number,
+  gameVersion: GameVersion,
+  gender: Gender
+): number[] {
+  const variants = new Set<number>()
+  
+  for (const [path] of Object.entries(textureFiles)) {
+    const info = parseTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.category === 'head' &&
+        info.skinColor === skinColor) {
+      variants.add(info.variant)
+    }
+  }
+  
+  return Array.from(variants).sort((a, b) => a - b)
+}
+
+/**
+ * Get all available skin colors across all body and head textures
+ */
+export function discoverAllSkinColors(
+  gameVersion: GameVersion,
+  gender: Gender
+): number[] {
+  const skinColors = new Set<number>()
+  
+  for (const [path] of Object.entries(textureFiles)) {
+    const info = parseTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender) {
+      skinColors.add(info.skinColor)
+    }
+  }
+  
+  return Array.from(skinColors).sort((a, b) => a - b)
+}
+
+/**
  * Discover available texture variants for a body mesh
  */
 export function discoverBodyTextureVariants(
