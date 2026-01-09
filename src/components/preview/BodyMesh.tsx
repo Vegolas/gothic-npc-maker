@@ -1,7 +1,7 @@
 import { useGLTF } from '@react-three/drei'
 import { type Mesh, MeshBasicMaterial } from 'three'
 import { useEffect, useMemo, useState, Suspense } from 'react'
-import type { Gender } from '../../types/npc'
+import type { Gender, GameVersion } from '../../types/npc'
 import { getBodyMeshPath, getBodyTexturePath } from '../../utils/assetPaths'
 import { loadTextureAsync } from '../../utils/textureLoader'
 import { ModelErrorBoundary } from './ErrorBoundary'
@@ -9,8 +9,10 @@ import { ModelErrorBoundary } from './ErrorBoundary'
 interface BodyMeshProps {
   meshId: string
   textureVariant: number
+  textureFile?: string | null  // Direct texture filename (overrides variant/skinColor)
   skinColor: number
   gender: Gender
+  gameVersion: GameVersion
   fatness: number
 }
 
@@ -22,12 +24,18 @@ interface BodyMeshProps {
 export function BodyMesh({
   meshId,
   textureVariant,
+  textureFile,
   skinColor,
   gender,
+  gameVersion,
   fatness,
 }: BodyMeshProps) {
-  const modelPath = getBodyMeshPath(meshId, gender)
-  const texturePath = getBodyTexturePath(meshId, textureVariant, skinColor, gender)
+  const modelPath = getBodyMeshPath(meshId, gender, gameVersion)
+
+  // Use direct texture file if provided, otherwise construct path from variant/color
+  const texturePath = textureFile
+    ? `/assets/${gameVersion}/${gender}/textures/body/${textureFile}`
+    : getBodyTexturePath(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {
     return <PlaceholderBody fatness={fatness} />
@@ -71,15 +79,8 @@ function BodyMeshLoader({ modelPath, texturePath, fatness }: BodyMeshLoaderProps
 
   // Clone scene to avoid modifying the cached original
   const clonedScene = useMemo(() => {
-    const clone = scene.clone(true)
-
-    // Apply fatness scaling
-    // Gothic uses fatness as a scaling factor on X and Z
-    const scale = 1 + (fatness * 0.2) // -0.2 to +0.2 range
-    clone.scale.set(scale, 1, scale)
-
-    return clone
-  }, [scene, fatness])
+    return scene.clone(true)
+  }, [scene])
 
   // Apply texture to all meshes in the scene (flat/unlit material)
   useEffect(() => {
@@ -95,37 +96,40 @@ function BodyMeshLoader({ modelPath, texturePath, fatness }: BodyMeshLoaderProps
     })
   }, [clonedScene, texture])
 
-  return <primitive object={clonedScene} />
+  // Apply fatness scaling via group (X and Z only, preserves height)
+  return (
+    <group scale={[fatness, 1, fatness]}>
+      <primitive object={clonedScene} />
+    </group>
+  )
 }
 
 /**
  * Placeholder body when model isn't loaded
  */
 function PlaceholderBody({ fatness }: { fatness: number }) {
-  const scale = 1 + (fatness * 0.2)
-
   return (
-    <group>
+    <group scale={[fatness, 1, fatness]}>
       {/* Torso */}
       <mesh position={[0, 1, 0]}>
-        <capsuleGeometry args={[0.25 * scale, 0.6, 8, 16]} />
+        <capsuleGeometry args={[0.25, 0.6, 8, 16]} />
         <meshBasicMaterial color="#8b7355" />
       </mesh>
       {/* Legs */}
       <mesh position={[-0.1, 0.35, 0]}>
-        <capsuleGeometry args={[0.08 * scale, 0.5, 8, 16]} />
+        <capsuleGeometry args={[0.08, 0.5, 8, 16]} />
         <meshBasicMaterial color="#8b7355" />
       </mesh>
       <mesh position={[0.1, 0.35, 0]}>
-        <capsuleGeometry args={[0.08 * scale, 0.5, 8, 16]} />
+        <capsuleGeometry args={[0.08, 0.5, 8, 16]} />
         <meshBasicMaterial color="#8b7355" />
       </mesh>
       {/* Arms */}
-      <mesh position={[-0.35 * scale, 1, 0]} rotation={[0, 0, 0.3]}>
+      <mesh position={[-0.35, 1, 0]} rotation={[0, 0, 0.3]}>
         <capsuleGeometry args={[0.06, 0.4, 8, 16]} />
         <meshBasicMaterial color="#8b7355" />
       </mesh>
-      <mesh position={[0.35 * scale, 1, 0]} rotation={[0, 0, -0.3]}>
+      <mesh position={[0.35, 1, 0]} rotation={[0, 0, -0.3]}>
         <capsuleGeometry args={[0.06, 0.4, 8, 16]} />
         <meshBasicMaterial color="#8b7355" />
       </mesh>

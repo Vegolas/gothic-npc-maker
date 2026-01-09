@@ -1,9 +1,9 @@
 import { useNPCStore } from '../../stores/npcStore'
-import { Slider } from '../ui/Slider'
+import { SliderNew } from '../ui/slider-new'
 
 /**
  * Head offset sliders component
- * Controls the X and Y position of the head mesh
+ * Controls the X, Y, and Z position of the head mesh
  */
 export function HeadOffsetSlider() {
   const headOffsetX = useNPCStore((state) => state.config.headOffsetX)
@@ -14,32 +14,32 @@ export function HeadOffsetSlider() {
   const setHeadOffsetZ = useNPCStore((state) => state.setHeadOffsetZ)
 
   return (
-    <div className="space-y-2">
-      <Slider
+    <div className="space-y-4">
+      <SliderNew
         label="Head Offset X"
         min={-0.5}
         max={0.5}
         step={0.01}
-        value={headOffsetX}
-        onChange={(e) => setHeadOffsetX(Number(e.target.value))}
+        value={[headOffsetX]}
+        onValueChange={([value]) => setHeadOffsetX(value)}
         valueFormat={(v) => v.toFixed(2)}
       />
-      <Slider
+      <SliderNew
         label="Head Offset Y"
         min={-0.5}
         max={0.5}
         step={0.01}
-        value={headOffsetY}
-        onChange={(e) => setHeadOffsetY(Number(e.target.value))}
+        value={[headOffsetY]}
+        onValueChange={([value]) => setHeadOffsetY(value)}
         valueFormat={(v) => v.toFixed(2)}
       />
-      <Slider
+      <SliderNew
         label="Head Offset Z"
         min={-0.5}
         max={0.5}
         step={0.01}
-        value={headOffsetZ}
-        onChange={(e) => setHeadOffsetZ(Number(e.target.value))}
+        value={[headOffsetZ]}
+        onValueChange={([value]) => setHeadOffsetZ(value)}
         valueFormat={(v) => v.toFixed(2)}
       />
     </div>

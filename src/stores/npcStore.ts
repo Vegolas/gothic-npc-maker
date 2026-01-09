@@ -1,8 +1,7 @@
 import { create } from 'zustand'
-import type { NPCConfig, Gender } from '../types/npc'
+import type { NPCConfig, Gender, GameVersion, RoutineEntry } from '../types/npc'
 import { DEFAULT_NPC_CONFIG } from '../types/npc'
-import { getDefaultBody } from '../data/bodies'
-import { getDefaultHead } from '../data/heads'
+import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles } from '../utils/assetDiscovery'
 import { getDefaultVoice } from '../data/voiceSets'
 
 /**
@@ -11,6 +10,9 @@ import { getDefaultVoice } from '../data/voiceSets'
 interface NPCStore {
   // Current NPC configuration
   config: NPCConfig
+
+  // Game version action
+  setGameVersion: (version: GameVersion) => void
 
   // Actions for updating individual fields
   setInstanceName: (name: string) => void
@@ -25,15 +27,20 @@ interface NPCStore {
   // Visual actions
   setBodyMesh: (mesh: string) => void
   setBodyTexture: (texture: number) => void
+  setBodyTextureFile: (file: string | null) => void
   setSkinColor: (color: number) => void
   setHeadMesh: (mesh: string) => void
   setHeadTexture: (texture: number) => void
+  setHeadTextureFile: (file: string | null) => void
   setTeethTexture: (texture: number) => void
   setArmorInstance: (armor: string | null) => void
   setFatness: (fatness: number) => void
   setHeadOffsetX: (offset: number) => void
   setHeadOffsetY: (offset: number) => void
   setHeadOffsetZ: (offset: number) => void
+
+  // Preview settings
+  setPreviewScene: (sceneId: string) => void
 
   // Attribute actions
   setStrength: (value: number) => void
@@ -44,6 +51,8 @@ interface NPCStore {
   // Combat & Routine actions
   setFightTactic: (tactic: string) => void
   setWaypoint: (waypoint: string) => void
+  setDailyRoutine: (routine: RoutineEntry[]) => void
+  setZenWorldFile: (file: string | null) => void
 
   // Bulk actions
   resetConfig: () => void
@@ -57,6 +66,42 @@ export const useNPCStore = create<NPCStore>((set) => ({
   // Initial state
   config: { ...DEFAULT_NPC_CONFIG },
 
+  // Game version setter
+  setGameVersion: (gameVersion) =>
+    set((state) => {
+      // Set head offsets based on gender and game version
+      let headOffsetX = state.config.headOffsetX
+      let headOffsetY = state.config.headOffsetY
+      let headOffsetZ = state.config.headOffsetZ
+
+      // Apply G1 female offsets when switching to G1 with female gender
+      if (gameVersion === 'g1' && state.config.gender === 'female') {
+        headOffsetX = 0.01
+        headOffsetY = 0.01
+        headOffsetZ = -0.10
+      } else if (gameVersion === 'g2' && state.config.gender === 'female') {
+        // Reset to default for G2 female
+        headOffsetX = 0
+        headOffsetY = 0.10
+        headOffsetZ = 0.02
+      } else if (state.config.gender === 'male') {
+        // Reset to default for males
+        headOffsetX = 0
+        headOffsetY = 0.10
+        headOffsetZ = 0.02
+      }
+
+      return {
+        config: {
+          ...state.config,
+          gameVersion,
+          headOffsetX,
+          headOffsetY,
+          headOffsetZ,
+        }
+      }
+    }),
+
   // Identity setters
   setInstanceName: (instanceName) =>
     set((state) => ({ config: { ...state.config, instanceName } })),
@@ -67,19 +112,45 @@ export const useNPCStore = create<NPCStore>((set) => ({
   setGender: (gender) =>
     set((state) => {
       // When changing gender, update related fields to appropriate defaults
-      const body = getDefaultBody(gender)
-      const head = getDefaultHead(gender)
+      const bodies = discoverBodies(state.config.gameVersion, gender)
+      const heads = discoverHeads(state.config.gameVersion, gender)
       const voice = getDefaultVoice(gender)
+
+      const newBodyMesh = bodies[0]?.id || ''
+      const newHeadMesh = heads[0]?.id || ''
+
+      // Initialize texture files
+      const bodyTextureFiles = discoverBodyTextureFiles(newBodyMesh, state.config.gameVersion, gender)
+      const headTextureFiles = discoverHeadTextureFiles(newHeadMesh, state.config.gameVersion, gender)
+
+      // For female, use index 1 to avoid nude textures (index 0)
+      const defaultTextureIndex = gender === 'female' ? 1 : 0
+
+      // Set head offsets based on gender and game version
+      let headOffsetX = 0
+      let headOffsetY = 0.10
+      let headOffsetZ = 0.02
+
+      if (state.config.gameVersion === 'g1' && gender === 'female') {
+        headOffsetX = 0.01
+        headOffsetY = 0.01
+        headOffsetZ = -0.10
+      }
 
       return {
         config: {
           ...state.config,
           gender,
-          bodyMesh: body.id,
-          bodyTexture: 0,
-          headMesh: head.id,
-          headTexture: 0,
+          bodyMesh: newBodyMesh,
+          bodyTexture: defaultTextureIndex,
+          bodyTextureFile: bodyTextureFiles[defaultTextureIndex] || bodyTextureFiles[0] || null,
+          headMesh: newHeadMesh,
+          headTexture: defaultTextureIndex,
+          headTextureFile: headTextureFiles[defaultTextureIndex] || headTextureFiles[0] || null,
           voice,
+          headOffsetX,
+          headOffsetY,
+          headOffsetZ,
         },
       }
     }),
@@ -101,23 +172,51 @@ export const useNPCStore = create<NPCStore>((set) => ({
 
   // Visual setters
   setBodyMesh: (bodyMesh) =>
-    set((state) => ({
-      config: { ...state.config, bodyMesh, bodyTexture: 0 },
-    })),
+    set((state) => {
+      // Initialize texture file to first available
+      const textureFiles = discoverBodyTextureFiles(bodyMesh, state.config.gameVersion, state.config.gender)
+      // For female, use index 1 to avoid nude textures (index 0)
+      const defaultIndex = state.config.gender === 'female' ? 1 : 0
+      return {
+        config: {
+          ...state.config,
+          bodyMesh,
+          bodyTexture: defaultIndex,
+          bodyTextureFile: textureFiles[defaultIndex] || textureFiles[0] || null,
+        },
+      }
+    }),
 
   setBodyTexture: (bodyTexture) =>
     set((state) => ({ config: { ...state.config, bodyTexture } })),
+
+  setBodyTextureFile: (bodyTextureFile) =>
+    set((state) => ({ config: { ...state.config, bodyTextureFile } })),
 
   setSkinColor: (skinColor) =>
     set((state) => ({ config: { ...state.config, skinColor } })),
 
   setHeadMesh: (headMesh) =>
-    set((state) => ({
-      config: { ...state.config, headMesh, headTexture: 0 },
-    })),
+    set((state) => {
+      // Initialize texture file to first available
+      const textureFiles = discoverHeadTextureFiles(headMesh, state.config.gameVersion, state.config.gender)
+      // For female, use index 1 to avoid nude textures (index 0)
+      const defaultIndex = state.config.gender === 'female' ? 1 : 0
+      return {
+        config: {
+          ...state.config,
+          headMesh,
+          headTexture: defaultIndex,
+          headTextureFile: textureFiles[defaultIndex] || textureFiles[0] || null,
+        },
+      }
+    }),
 
   setHeadTexture: (headTexture) =>
     set((state) => ({ config: { ...state.config, headTexture } })),
+
+  setHeadTextureFile: (headTextureFile) =>
+    set((state) => ({ config: { ...state.config, headTextureFile } })),
 
   setTeethTexture: (teethTexture) =>
     set((state) => ({ config: { ...state.config, teethTexture } })),
@@ -127,7 +226,7 @@ export const useNPCStore = create<NPCStore>((set) => ({
 
   setFatness: (fatness) =>
     set((state) => ({
-      config: { ...state.config, fatness: Math.max(-1, Math.min(1, fatness)) },
+      config: { ...state.config, fatness: Math.max(0.8, Math.min(1.2, fatness)) },
     })),
 
   setHeadOffsetX: (headOffsetX) =>
@@ -143,6 +242,12 @@ export const useNPCStore = create<NPCStore>((set) => ({
   setHeadOffsetZ: (headOffsetZ) =>
     set((state) => ({
       config: { ...state.config, headOffsetZ },
+    })),
+
+  // Preview settings
+  setPreviewScene: (previewScene) =>
+    set((state) => ({
+      config: { ...state.config, previewScene },
     })),
 
   // Attribute setters
@@ -173,6 +278,12 @@ export const useNPCStore = create<NPCStore>((set) => ({
   setWaypoint: (waypoint) =>
     set((state) => ({ config: { ...state.config, waypoint } })),
 
+  setDailyRoutine: (dailyRoutine) =>
+    set((state) => ({ config: { ...state.config, dailyRoutine } })),
+
+  setZenWorldFile: (zenWorldFile) =>
+    set((state) => ({ config: { ...state.config, zenWorldFile } })),
+
   // Reset to defaults
   resetConfig: () =>
     set({ config: { ...DEFAULT_NPC_CONFIG } }),
@@ -188,14 +299,17 @@ export const useNPCStore = create<NPCStore>((set) => ({
  * Selector hooks for specific parts of the config
  * These prevent unnecessary re-renders
  */
+export const useNPCGameVersion = () => useNPCStore((state) => state.config.gameVersion)
 export const useNPCGender = () => useNPCStore((state) => state.config.gender)
 export const useNPCVisuals = () =>
   useNPCStore((state) => ({
     bodyMesh: state.config.bodyMesh,
     bodyTexture: state.config.bodyTexture,
+    bodyTextureFile: state.config.bodyTextureFile,
     skinColor: state.config.skinColor,
     headMesh: state.config.headMesh,
     headTexture: state.config.headTexture,
+    headTextureFile: state.config.headTextureFile,
     armorInstance: state.config.armorInstance,
     fatness: state.config.fatness,
     headOffsetX: state.config.headOffsetX,

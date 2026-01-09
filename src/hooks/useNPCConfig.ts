@@ -3,7 +3,7 @@
  * Provides convenient access patterns for different parts of the app
  */
 
-import { useNPCStore, useNPCGender, useNPCVisuals } from '../stores/npcStore'
+import { useNPCStore, useNPCGameVersion, useNPCGender, useNPCVisuals } from '../stores/npcStore'
 import type { NPCConfig } from '../types/npc'
 
 /**
@@ -60,4 +60,4 @@ export function useNPCCombat() {
 }
 
 // Re-export convenience hooks
-export { useNPCGender, useNPCVisuals }
+export { useNPCGameVersion, useNPCGender, useNPCVisuals }

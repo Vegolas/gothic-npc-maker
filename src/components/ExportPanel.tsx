@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useNPCConfigValue } from '../hooks/useNPCConfig'
 import { useNPCStore } from '../stores/npcStore'
 import { downloadNPCScript, downloadNPCConfig, loadNPCConfigFromFile } from '../utils/exportUtils'
-import { Button } from './ui/Button'
+import { ChevronDown, Download, Upload, RotateCcw, FileCode, FileJson } from 'lucide-react'
 
 /**
  * Export panel component
@@ -52,21 +52,21 @@ export function ExportPanel() {
 
   return (
     <div className="relative">
-      <Button
-        variant="primary"
-        size="sm"
+      <button
         onClick={() => setShowMenu(!showMenu)}
+        className={`
+          flex items-center gap-2 px-4 py-2 rounded-md
+          bg-ember/20 border border-ember/30 text-ember
+          font-display text-sm
+          hover:bg-ember/30 hover:border-ember/50
+          transition-all duration-200
+          ${showMenu ? 'bg-ember/30 border-ember/50' : ''}
+        `}
       >
+        <Download className="w-4 h-4" />
         Export
-        <svg
-          className="w-4 h-4 ml-1"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </Button>
+        <ChevronDown className={`w-4 h-4 transition-transform ${showMenu ? 'rotate-180' : ''}`} />
+      </button>
 
       {/* Dropdown menu */}
       {showMenu && (
@@ -78,24 +78,27 @@ export function ExportPanel() {
           />
 
           {/* Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-gothic-darker border border-gothic-stone rounded-md shadow-lg z-20">
+          <div className="absolute right-0 mt-2 w-56 bg-obsidian border border-stone/50 rounded-lg shadow-deep z-20 overflow-hidden animate-fade-in">
             <div className="py-1">
               <button
                 onClick={handleDownloadScript}
-                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gothic-stone/30"
+                className="w-full px-4 py-2.5 text-left text-sm text-text flex items-center gap-3 hover:bg-stone/30 hover:text-ember transition-colors"
               >
+                <FileCode className="w-4 h-4 text-text-dim" />
                 Download Script (.d)
               </button>
               <button
                 onClick={handleDownloadConfig}
-                className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gothic-stone/30"
+                className="w-full px-4 py-2.5 text-left text-sm text-text flex items-center gap-3 hover:bg-stone/30 hover:text-ember transition-colors"
               >
+                <FileJson className="w-4 h-4 text-text-dim" />
                 Save Config (.json)
               </button>
 
-              <div className="border-t border-gothic-stone my-1" />
+              <div className="h-px bg-stone/30 my-1" />
 
-              <label className="block w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gothic-stone/30 cursor-pointer">
+              <label className="flex items-center gap-3 w-full px-4 py-2.5 text-left text-sm text-text hover:bg-stone/30 hover:text-ember transition-colors cursor-pointer">
+                <Upload className="w-4 h-4 text-text-dim" />
                 Load Config...
                 <input
                   ref={fileInputRef}
@@ -106,12 +109,13 @@ export function ExportPanel() {
                 />
               </label>
 
-              <div className="border-t border-gothic-stone my-1" />
+              <div className="h-px bg-stone/30 my-1" />
 
               <button
                 onClick={handleReset}
-                className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gothic-stone/30"
+                className="w-full px-4 py-2.5 text-left text-sm text-blood flex items-center gap-3 hover:bg-blood/10 transition-colors"
               >
+                <RotateCcw className="w-4 h-4" />
                 Reset to Defaults
               </button>
             </div>

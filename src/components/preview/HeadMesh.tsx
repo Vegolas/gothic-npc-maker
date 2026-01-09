@@ -1,7 +1,7 @@
 import { useGLTF } from '@react-three/drei'
 import { type Mesh, MeshBasicMaterial } from 'three'
 import { useEffect, useMemo, useState, Suspense } from 'react'
-import type { Gender } from '../../types/npc'
+import type { Gender, GameVersion } from '../../types/npc'
 import { getHeadMeshPath, getHeadTexturePath } from '../../utils/assetPaths'
 import { loadTextureAsync } from '../../utils/textureLoader'
 import { ModelErrorBoundary } from './ErrorBoundary'
@@ -9,11 +9,14 @@ import { ModelErrorBoundary } from './ErrorBoundary'
 interface HeadMeshProps {
   meshId: string
   textureVariant: number
+  textureFile?: string | null  // Direct texture filename (overrides variant/skinColor)
   skinColor: number
   gender: Gender
+  gameVersion: GameVersion
   headOffsetX: number
   headOffsetY: number
   headOffsetZ: number
+  fatness: number
 }
 
 /**
@@ -24,28 +27,36 @@ interface HeadMeshProps {
 export function HeadMesh({
   meshId,
   textureVariant,
+  textureFile,
   skinColor,
   gender,
+  gameVersion,
   headOffsetX,
   headOffsetY,
   headOffsetZ,
+  fatness,
 }: HeadMeshProps) {
-  const modelPath = getHeadMeshPath(meshId, gender)
-  const texturePath = getHeadTexturePath(meshId, textureVariant, skinColor, gender)
+  const modelPath = getHeadMeshPath(meshId, gender, gameVersion)
+
+  // Use direct texture file if provided, otherwise construct path from variant/color
+  const texturePath = textureFile
+    ? `/assets/${gameVersion}/${gender}/textures/head/${textureFile}`
+    : getHeadTexturePath(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {
-    return <PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} />
+    return <PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} fatness={fatness} />
   }
 
   return (
-    <ModelErrorBoundary fallback={<PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} />}>
-      <Suspense fallback={<PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} />}>
+    <ModelErrorBoundary fallback={<PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} fatness={fatness} />}>
+      <Suspense fallback={<PlaceholderHead headOffsetX={headOffsetX} headOffsetY={headOffsetY} headOffsetZ={headOffsetZ} fatness={fatness} />}>
         <HeadMeshLoader
           modelPath={modelPath}
           texturePath={texturePath}
           headOffsetX={headOffsetX}
           headOffsetY={headOffsetY}
           headOffsetZ={headOffsetZ}
+          fatness={fatness}
         />
       </Suspense>
     </ModelErrorBoundary>
@@ -58,9 +69,10 @@ interface HeadMeshLoaderProps {
   headOffsetX: number
   headOffsetY: number
   headOffsetZ: number
+  fatness: number
 }
 
-function HeadMeshLoader({ modelPath, texturePath, headOffsetX, headOffsetY, headOffsetZ }: HeadMeshLoaderProps) {
+function HeadMeshLoader({ modelPath, texturePath, headOffsetX, headOffsetY, headOffsetZ, fatness }: HeadMeshLoaderProps) {
   const { scene } = useGLTF(modelPath, true)
 
   // Try to load texture (supports PNG, TGA, JPG)
@@ -80,11 +92,8 @@ function HeadMeshLoader({ modelPath, texturePath, headOffsetX, headOffsetY, head
   // Clone scene
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true)
-    // Position head at neck height + offsets
-    // Base height 1.5, adjustable with headOffsetY
-    clone.position.set(headOffsetX, 1.5 + headOffsetY, headOffsetZ)
     return clone
-  }, [scene, headOffsetX, headOffsetY, headOffsetZ])
+  }, [scene])
 
   // Apply texture or default material (flat/unlit)
   useEffect(() => {
@@ -100,15 +109,29 @@ function HeadMeshLoader({ modelPath, texturePath, headOffsetX, headOffsetY, head
     })
   }, [clonedScene, texture])
 
-  return <primitive object={clonedScene} />
+  // Position head at neck height + offsets using a group, with fatness scaling
+  // Rotate -90 degrees on Y axis (left/right rotation)
+  return (
+    <group 
+      position={[headOffsetX, 1.5 + headOffsetY, headOffsetZ]} 
+      scale={[fatness, 1, fatness]}
+      rotation={[0, -Math.PI / 2, 0]}
+    >
+      <primitive object={clonedScene} />
+    </group>
+  )
 }
 
 /**
  * Placeholder head when model isn't loaded
  */
-function PlaceholderHead({ headOffsetX, headOffsetY, headOffsetZ }: { headOffsetX: number; headOffsetY: number; headOffsetZ: number }) {
+function PlaceholderHead({ headOffsetX, headOffsetY, headOffsetZ, fatness }: { headOffsetX: number; headOffsetY: number; headOffsetZ: number; fatness: number }) {
   return (
-    <group position={[headOffsetX, 1.5 + headOffsetY, headOffsetZ]}>
+    <group 
+      position={[headOffsetX, 1.5 + headOffsetY, headOffsetZ]} 
+      scale={[fatness, 1, fatness]}
+      rotation={[0, -Math.PI / 2, 0]}
+    >
       {/* Head sphere */}
       <mesh position={[0, 0.15, 0]}>
         <sphereGeometry args={[0.12, 16, 16]} />

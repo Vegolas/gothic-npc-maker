@@ -5,7 +5,14 @@
       "Bash(npx tsc:*)",
       "Bash(timeout 10 npm run dev)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build)",
+      "Skill(frontend-design)",
+      "mcp__shadcn__list_shadcn_components",
+      "mcp__shadcn__get_component_details",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)"
     ]
   }
 }

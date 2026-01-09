@@ -1,100 +1,110 @@
 import { useNPCStore } from '../../stores/npcStore'
-import { getBodyVariantCount, getHeadVariantCount, getSkinColorCount } from '../../data/textures'
-import { getBodyTexturePath, getHeadTexturePath } from '../../utils/assetPaths'
-import { Slider } from '../ui/Slider'
+import { discoverBodyTextureFiles, discoverHeadTextureFiles } from '../../utils/assetDiscovery'
+import { SliderNew } from '../ui/slider-new'
 
 /**
- * Body texture variant selector
+ * Body texture selector - file-based
+ * Directly selects from discovered texture files
  */
 export function BodyTextureSelector() {
+  const gameVersion = useNPCStore((state) => state.config.gameVersion)
   const gender = useNPCStore((state) => state.config.gender)
   const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
-  const bodyTexture = useNPCStore((state) => state.config.bodyTexture)
-  const skinColor = useNPCStore((state) => state.config.skinColor)
-  const setBodyTexture = useNPCStore((state) => state.setBodyTexture)
+  const bodyTextureFile = useNPCStore((state) => state.config.bodyTextureFile)
+  const setBodyTextureFile = useNPCStore((state) => state.setBodyTextureFile)
 
-  const maxVariant = getBodyVariantCount(bodyMesh) - 1
-  const texturePath = getBodyTexturePath(bodyMesh, bodyTexture, skinColor, gender)
+  const textureFiles = discoverBodyTextureFiles(bodyMesh, gameVersion, gender)
+
+  // Find current index or default to 0
+  const currentIndex = bodyTextureFile
+    ? textureFiles.indexOf(bodyTextureFile)
+    : 0
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0
+
+  const handleChange = (index: number) => {
+    const file = textureFiles[index]
+    setBodyTextureFile(file || null)
+  }
+
+  if (textureFiles.length === 0) {
+    return (
+      <div className="text-xs text-text-muted">
+        No body textures found for {bodyMesh}
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-1">
-      <Slider
+    <div className="space-y-2">
+      <SliderNew
         label="Body Texture"
         min={0}
-        max={maxVariant}
+        max={textureFiles.length - 1}
         step={1}
-        value={bodyTexture}
-        onChange={(e) => setBodyTexture(Number(e.target.value))}
-        valueFormat={(v) => `V${v}`}
+        value={[safeIndex]}
+        onValueChange={([value]) => handleChange(value)}
+        valueFormat={(v) => `${v + 1}/${textureFiles.length}`}
       />
-      <TexturePathDisplay path={texturePath} />
+      <TextureFileDisplay filename={textureFiles[safeIndex]} />
     </div>
   )
 }
 
 /**
- * Head texture variant selector
+ * Head texture selector - file-based
+ * Directly selects from discovered texture files
  */
 export function HeadTextureSelector() {
+  const gameVersion = useNPCStore((state) => state.config.gameVersion)
   const gender = useNPCStore((state) => state.config.gender)
   const headMesh = useNPCStore((state) => state.config.headMesh)
-  const headTexture = useNPCStore((state) => state.config.headTexture)
-  const skinColor = useNPCStore((state) => state.config.skinColor)
-  const setHeadTexture = useNPCStore((state) => state.setHeadTexture)
+  const headTextureFile = useNPCStore((state) => state.config.headTextureFile)
+  const setHeadTextureFile = useNPCStore((state) => state.setHeadTextureFile)
 
-  const maxVariant = getHeadVariantCount(headMesh) - 1
-  const texturePath = getHeadTexturePath(headMesh, headTexture, skinColor, gender)
+  const textureFiles = discoverHeadTextureFiles(headMesh, gameVersion, gender)
+
+  // Find current index or default to 0
+  const currentIndex = headTextureFile
+    ? textureFiles.indexOf(headTextureFile)
+    : 0
+  const safeIndex = currentIndex >= 0 ? currentIndex : 0
+
+  const handleChange = (index: number) => {
+    const file = textureFiles[index]
+    setHeadTextureFile(file || null)
+  }
+
+  if (textureFiles.length === 0) {
+    return (
+      <div className="text-xs text-text-muted">
+        No head textures found
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-1">
-      <Slider
+    <div className="space-y-2">
+      <SliderNew
         label="Head Texture"
         min={0}
-        max={maxVariant}
+        max={textureFiles.length - 1}
         step={1}
-        value={headTexture}
-        onChange={(e) => setHeadTexture(Number(e.target.value))}
-        valueFormat={(v) => `V${v}`}
+        value={[safeIndex]}
+        onValueChange={([value]) => handleChange(value)}
+        valueFormat={(v) => `${v + 1}/${textureFiles.length}`}
       />
-      <TexturePathDisplay path={texturePath} />
+      <TextureFileDisplay filename={textureFiles[safeIndex]} />
     </div>
   )
 }
 
 /**
- * Skin color selector
- * Controls the C (color) variant for both body and head
+ * Display the actual texture filename
  */
-export function SkinColorSelector() {
-  const skinColor = useNPCStore((state) => state.config.skinColor)
-  const setSkinColor = useNPCStore((state) => state.setSkinColor)
-
-  const maxColor = getSkinColorCount() - 1
-  const colorNames = ['Light', 'Medium', 'Dark']
-
+function TextureFileDisplay({ filename }: { filename: string }) {
   return (
-    <Slider
-      label="Skin Color"
-      min={0}
-      max={maxColor}
-      step={1}
-      value={skinColor}
-      onChange={(e) => setSkinColor(Number(e.target.value))}
-      valueFormat={(v) => colorNames[v] ?? `C${v}`}
-    />
-  )
-}
-
-/**
- * Display the texture path being looked for
- */
-function TexturePathDisplay({ path }: { path: string }) {
-  // Extract just the filename from the path
-  const filename = path.split('/').pop() || path
-
-  return (
-    <div className="text-[10px] text-gray-500 font-mono truncate" title={path}>
-      Looking for: {filename}.[tga|png|jpg]
+    <div className="text-[10px] text-text-muted font-mono truncate opacity-60" title={filename}>
+      {filename}
     </div>
   )
 }

@@ -3,11 +3,8 @@
  * Resolves asset paths based on gender and asset type
  */
 
-import type { Gender } from '../types/npc'
-import { getBodyById } from '../data/bodies'
-import { getHeadById } from '../data/heads'
-import { getArmorById } from '../data/armors'
-import { getBodyTextureFileName, getHeadTextureFileName } from '../data/textures'
+import type { Gender, GameVersion } from '../types/npc'
+import { discoverBodies, discoverHeads, discoverArmors, findBodyTexture, findHeadTexture } from './assetDiscovery'
 
 // Base path for all assets
 const ASSETS_BASE = '/assets'
@@ -15,63 +12,88 @@ const ASSETS_BASE = '/assets'
 /**
  * Get the path to a body mesh file
  */
-export function getBodyMeshPath(meshId: string, gender: Gender): string {
-  const body = getBodyById(meshId)
+export function getBodyMeshPath(meshId: string, gender: Gender, gameVersion: GameVersion): string {
+  const bodies = discoverBodies(gameVersion, gender)
+  const body = bodies.find(b => b.id === meshId)
+  
   if (!body) {
     console.warn(`Body mesh not found: ${meshId}`)
     return ''
   }
-  return `${ASSETS_BASE}/${gender}/bodies/${body.fileName}`
+  
+  return `${ASSETS_BASE}/${gameVersion}/${gender}/bodies/${body.fileName}`
 }
 
 /**
  * Get the path to a head mesh file
  */
-export function getHeadMeshPath(meshId: string, gender: Gender): string {
-  const head = getHeadById(meshId)
+export function getHeadMeshPath(meshId: string, gender: Gender, gameVersion: GameVersion): string {
+  const heads = discoverHeads(gameVersion, gender)
+  const head = heads.find(h => h.id === meshId)
+  
   if (!head) {
     console.warn(`Head mesh not found: ${meshId}`)
     return ''
   }
-  return `${ASSETS_BASE}/${gender}/heads/${head.fileName}`
+  
+  return `${ASSETS_BASE}/${gameVersion}/${gender}/heads/${head.fileName}`
 }
 
 /**
  * Get the path to an armor mesh file
  */
-export function getArmorMeshPath(armorId: string): string {
-  const armor = getArmorById(armorId)
-  if (!armor || !armor.fileName) {
+export function getArmorMeshPath(armorId: string, gameVersion: GameVersion): string {
+  const armors = discoverArmors(gameVersion)
+  const armor = armors.find(a => a.id === armorId)
+  
+  if (!armor) {
     console.warn(`Armor mesh not found: ${armorId}`)
     return ''
   }
-  return `${ASSETS_BASE}/armors/${armor.fileName}`
+  
+  return `${ASSETS_BASE}/${gameVersion}/armors/${armor.fileName}`
 }
 
 /**
- * Get the path to a body texture file
+ * Get the path to a body texture file (dynamically discovered)
  */
 export function getBodyTexturePath(
   meshId: string,
   variant: number,
   skinColor: number,
-  gender: Gender
+  gender: Gender,
+  gameVersion: GameVersion
 ): string {
-  const fileName = getBodyTextureFileName(meshId, variant, skinColor)
-  return `${ASSETS_BASE}/${gender}/textures/body/${fileName}`
+  const texturePath = findBodyTexture(meshId, variant, skinColor, gameVersion, gender)
+  
+  if (texturePath) {
+    return texturePath
+  }
+  
+  // Fallback: try to construct path (for backward compatibility)
+  console.warn(`Body texture not found for ${meshId} V${variant} C${skinColor}, using fallback`)
+  return ''
 }
 
 /**
- * Get the path to a head texture file
+ * Get the path to a head texture file (dynamically discovered)
  */
 export function getHeadTexturePath(
   meshId: string,
   variant: number,
   skinColor: number,
-  gender: Gender
+  gender: Gender,
+  gameVersion: GameVersion
 ): string {
-  const fileName = getHeadTextureFileName(meshId, variant, skinColor)
-  return `${ASSETS_BASE}/${gender}/textures/head/${fileName}`
+  const texturePath = findHeadTexture(meshId, variant, skinColor, gameVersion, gender)
+  
+  if (texturePath) {
+    return texturePath
+  }
+  
+  // Fallback: try to construct path (for backward compatibility)
+  console.warn(`Head texture not found for ${meshId} V${variant} C${skinColor}, using fallback`)
+  return ''
 }
 
 /**

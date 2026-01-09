@@ -1,34 +1,15 @@
 /**
  * Fight tactic definitions for Gothic NPC Creator
- * Based on Gothic 2 fight AI constants
+ * Dynamically discovered from /public/assets/{g1|g2}/data/tactics.txt
  */
 
-import type { FightTactic } from '../types/assets'
-
-/**
- * Available fight tactics
- * These match the FAI_* constants in Daedalus scripts
- */
-export const FIGHT_TACTICS: FightTactic[] = [
-  { id: 'FAI_HUMAN_COWARD', name: 'Coward (Flees easily)' },
-  { id: 'FAI_HUMAN_NORMAL', name: 'Normal' },
-  { id: 'FAI_HUMAN_STRONG', name: 'Strong' },
-  { id: 'FAI_HUMAN_MASTER', name: 'Master' },
-  // Special tactics
-  { id: 'FAI_HUMAN_RANGED', name: 'Ranged Preferred' },
-  { id: 'FAI_HUMAN_MAGE', name: 'Mage' },
-]
+import { discoverFightTactics } from '../utils/assetDiscovery'
+import type { GameVersion } from '../types/npc'
 
 /**
- * Get fight tactic by ID
+ * Get fight tactics for a specific game version
+ * Returns raw tactic IDs discovered from the filesystem
  */
-export function getFightTacticById(id: string): FightTactic | undefined {
-  return FIGHT_TACTICS.find(tactic => tactic.id === id)
-}
-
-/**
- * Get fight tactic name by ID
- */
-export function getFightTacticName(id: string): string {
-  return getFightTacticById(id)?.name ?? 'Unknown'
+export async function getFightTactics(gameVersion: GameVersion): Promise<string[]> {
+  return discoverFightTactics(gameVersion)
 }

@@ -60,11 +60,22 @@ export function generateDaedalusScript(config: NPCConfig): string {
     manaMax,
     hitpointsMax,
     fightTactic,
-    waypoint,
+    dailyRoutine,
   } = config
 
   // Get actual head texture index (female textures start at different offset)
   const actualHeadTexture = getHeadTextureIndex(headMesh, headTexture)
+
+  // Generate routine entries
+  const routineEntries = dailyRoutine.length > 0
+    ? dailyRoutine.map(entry => {
+        const startH = entry.startHour.toString().padStart(2, '0')
+        const startM = entry.startMinute.toString().padStart(2, '0')
+        const endH = entry.endHour.toString().padStart(2, '0')
+        const endM = entry.endMinute.toString().padStart(2, '0')
+        return `    ${entry.action}(${startH}, ${startM}, ${endH}, ${endM}, "${entry.waypoint}");`
+      }).join('\n')
+    : `    TA_Stand_Guarding(08, 00, 20, 00, "START");\n    TA_Stand_Guarding(20, 00, 08, 00, "START");`
 
   const script = `// Generated NPC: ${displayName}
 // Instance: ${instanceName}
@@ -111,8 +122,7 @@ instance ${instanceName} (Npc_Default)
 // Daily routine function
 func void Rtn_Start_${instanceName}()
 {
-    TA_Stand_Guarding(08, 00, 20, 00, "${waypoint}");
-    TA_Stand_Guarding(20, 00, 08, 00, "${waypoint}");
+${routineEntries}
 };
 `
 

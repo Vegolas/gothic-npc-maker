@@ -1,6 +1,6 @@
 /**
  * Editor component exports
  */
+export { VisualEditor } from './VisualEditor'
 export { IdentityEditor } from './IdentityEditor'
-export { AttributeEditor } from './AttributeEditor'
-export { CombatEditor } from './CombatEditor'
+export { RoutineEditor } from './RoutineEditor'

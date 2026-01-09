@@ -1,12 +1,12 @@
 /**
  * Scene lighting setup
- * Uses only ambient light for flat, unlit rendering
+ * Bluish ambient light only
  */
 export function Lighting() {
   return (
     <>
-      {/* Full ambient light for flat rendering */}
-      <ambientLight intensity={1} color="#ffffff" />
+      {/* Ambient light with bluish sky tint */}
+      <ambientLight intensity={1} color="#b3d9ff" />
     </>
   )
 }

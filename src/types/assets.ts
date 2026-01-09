@@ -52,6 +52,7 @@ export interface VoiceSet {
   id: number              // Voice set index
   name: string            // Display name
   gender: Gender
+  audioSamples?: string[] // Array of audio file paths for preview
 }
 
 /**
