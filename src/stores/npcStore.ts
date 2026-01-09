@@ -122,19 +122,28 @@ export const useNPCStore = create<NPCStore>()(
       const newBodyMesh = bodies[0]?.id || ''
       const newHeadMesh = heads[0]?.id || ''
 
-      // Initialize texture files
-      const bodyTextureFiles = discoverBodyTextureFiles(newBodyMesh, state.config.gameVersion, gender)
-      const headTextureFiles = discoverHeadTextureFiles(newHeadMesh, state.config.gameVersion, gender)
+      const isG1Female = state.config.gameVersion === 'g1' && gender === 'female'
 
-      // For female, use index 1 to avoid nude textures (index 0)
-      const defaultTextureIndex = gender === 'female' ? 1 : 0
+      // For G1 Female: use file-based textures
+      // For others: use variant-based (textureFile should be null)
+      let bodyTextureFile = null
+      let headTextureFile = null
+      let defaultTextureIndex = 0
+
+      if (isG1Female) {
+        const bodyTextureFiles = discoverBodyTextureFiles(newBodyMesh, state.config.gameVersion, gender)
+        const headTextureFiles = discoverHeadTextureFiles(newHeadMesh, state.config.gameVersion, gender)
+        defaultTextureIndex = 1 // Avoid nude textures
+        bodyTextureFile = bodyTextureFiles[defaultTextureIndex] || bodyTextureFiles[0] || null
+        headTextureFile = headTextureFiles[defaultTextureIndex] || headTextureFiles[0] || null
+      }
 
       // Set head offsets based on gender and game version
       let headOffsetX = 0
       let headOffsetY = 0.10
       let headOffsetZ = 0.02
 
-      if (state.config.gameVersion === 'g1' && gender === 'female') {
+      if (isG1Female) {
         headOffsetX = 0.01
         headOffsetY = 0.01
         headOffsetZ = -0.10
@@ -146,10 +155,11 @@ export const useNPCStore = create<NPCStore>()(
           gender,
           bodyMesh: newBodyMesh,
           bodyTexture: defaultTextureIndex,
-          bodyTextureFile: bodyTextureFiles[defaultTextureIndex] || bodyTextureFiles[0] || null,
+          bodyTextureFile,
           headMesh: newHeadMesh,
           headTexture: defaultTextureIndex,
-          headTextureFile: headTextureFiles[defaultTextureIndex] || headTextureFiles[0] || null,
+          headTextureFile,
+          armorInstance: isG1Female ? null : state.config.armorInstance, // Clear armor for G1 Female
           voice,
           headOffsetX,
           headOffsetY,

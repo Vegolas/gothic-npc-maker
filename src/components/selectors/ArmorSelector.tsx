@@ -11,11 +11,18 @@ import {
 /**
  * Armor selector component
  * Dynamically discovers available armors
+ * Hidden for G1 Female (armors don't work with G1 females)
  */
 export function ArmorSelector() {
   const gameVersion = useNPCStore((state) => state.config.gameVersion)
+  const gender = useNPCStore((state) => state.config.gender)
   const armorInstance = useNPCStore((state) => state.config.armorInstance)
   const setArmorInstance = useNPCStore((state) => state.setArmorInstance)
+
+  // Hide armor selector for G1 Female (armors don't work)
+  if (gameVersion === 'g1' && gender === 'female') {
+    return null
+  }
 
   const armors = [
     { id: '__none__', name: 'No Armor (Naked)' },

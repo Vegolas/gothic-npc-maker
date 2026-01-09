@@ -73,12 +73,12 @@ export function ExportPanel() {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[100]"
             onClick={() => setShowMenu(false)}
           />
 
           {/* Menu */}
-          <div className="absolute right-0 mt-2 w-56 bg-obsidian border border-stone/50 rounded-lg shadow-deep z-20 overflow-hidden animate-fade-in">
+          <div className="absolute right-0 mt-2 w-56 bg-obsidian border border-stone/50 rounded-lg shadow-deep z-[110] overflow-hidden animate-fade-in">
             <div className="py-1">
               <button
                 onClick={handleDownloadScript}

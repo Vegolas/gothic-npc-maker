@@ -32,8 +32,9 @@ export function BodyMesh({
 }: BodyMeshProps) {
   const modelPath = getBodyMeshPath(meshId, gender, gameVersion)
 
-  // Use direct texture file if provided, otherwise construct path from variant/color
-  const texturePath = textureFile
+  // For non-G1-female, ignore textureFile and always use variant/skinColor
+  const isG1Female = gameVersion === 'g1' && gender === 'female'
+  const texturePath = (isG1Female && textureFile)
     ? `/assets/${gameVersion}/${gender}/textures/body/${textureFile}`
     : getBodyTexturePath(meshId, textureVariant, skinColor, gender, gameVersion)
 
