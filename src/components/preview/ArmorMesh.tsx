@@ -39,10 +39,7 @@ export function ArmorMesh({
     ? `/assets/${gameVersion}/${gender}/textures/body/${bodyTextureFile}`
     : getBodyTexturePath(bodyMesh, bodyTextureVariant, skinColor, gender, gameVersion)
 
-  console.log('[ArmorMesh] armorId:', armorId, 'modelPath:', modelPath, 'bodyTexturePath:', bodyTexturePath)
-
   if (!modelPath) {
-    console.warn('[ArmorMesh] No model path found for:', armorId)
     return null
   }
 
@@ -97,7 +94,6 @@ function ArmorMeshLoader({ modelPath, fatness, bodyTexturePath }: ArmorMeshLoade
         
         if (isSkinMaterial && bodyTexture) {
           // Replace with selected body texture
-          console.log('[ArmorMesh] Replacing skin material with body texture')
           mesh.material = new MeshBasicMaterial({ map: bodyTexture })
         } else if (oldMaterial.map) {
           // Preserve existing texture

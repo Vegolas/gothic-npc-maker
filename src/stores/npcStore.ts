@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { NPCConfig, Gender, GameVersion, RoutineEntry } from '../types/npc'
 import { DEFAULT_NPC_CONFIG } from '../types/npc'
-import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles } from '../utils/assetDiscovery'
+import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles, discoverHeadVariantsForSkinColor } from '../utils/assetDiscovery'
 import { getDefaultVoice } from '../data/voiceSets'
 
 /**
@@ -198,17 +198,43 @@ export const useNPCStore = create<NPCStore>((set) => ({
 
   setHeadMesh: (headMesh) =>
     set((state) => {
-      // Initialize texture file to first available
-      const textureFiles = discoverHeadTextureFiles(headMesh, state.config.gameVersion, state.config.gender)
-      // For female, use index 1 to avoid nude textures (index 0)
-      const defaultIndex = state.config.gender === 'female' ? 1 : 0
-      return {
-        config: {
-          ...state.config,
+      const isG1Female = state.config.gameVersion === 'g1' && state.config.gender === 'female'
+      
+      if (isG1Female) {
+        // G1 Female: file-based selection
+        const textureFiles = discoverHeadTextureFiles(headMesh, state.config.gameVersion, state.config.gender)
+        const defaultIndex = 1 // Avoid nude textures
+        return {
+          config: {
+            ...state.config,
+            headMesh,
+            headTexture: defaultIndex,
+            headTextureFile: textureFiles[defaultIndex] || textureFiles[0] || null,
+          },
+        }
+      } else {
+        // Others: variant-based selection - keep current variant if valid, otherwise use first available
+        const availableVariants = discoverHeadVariantsForSkinColor(
           headMesh,
-          headTexture: defaultIndex,
-          headTextureFile: textureFiles[defaultIndex] || textureFiles[0] || null,
-        },
+          state.config.skinColor,
+          state.config.gameVersion,
+          state.config.gender
+        )
+        
+        // Keep current variant if it exists for the new head, otherwise use first available
+        const currentVariant = state.config.headTexture
+        const newVariant = availableVariants.includes(currentVariant) 
+          ? currentVariant 
+          : (availableVariants.length > 0 ? availableVariants[0] : 0)
+        
+        return {
+          config: {
+            ...state.config,
+            headMesh,
+            headTexture: newVariant,
+            headTextureFile: null,
+          },
+        }
       }
     }),
 

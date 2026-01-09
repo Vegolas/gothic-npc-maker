@@ -7,6 +7,11 @@ import { cn } from '../../lib/utils'
 import { getHeadTexturePath } from '../../utils/assetPaths'
 import { loadTextureAsync } from '../../utils/textureLoader'
 import { MeshBasicMaterial, type Mesh, type Texture } from 'three'
+import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
+
+// Shared rotation state
+let sharedAzimuthAngle = 0
+let sharedPolarAngle = 0.1
 
 /**
  * Head mesh selector component
@@ -27,7 +32,7 @@ export function HeadSelector() {
       <label className="text-xs font-medium text-text-primary">
         Head Type
       </label>
-      <div className="grid grid-cols-8 gap-1 max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian">
+      <div className="grid grid-cols-8 gap-1 max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-2">
         {heads.map((head) => (
           <HeadCard
             key={head.id}
@@ -94,7 +99,7 @@ function HeadCard({ id, name, path, isSelected, onClick, textureVariant, skinCol
 
       {/* Label overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker via-obsidian-darker/90 to-transparent p-0.5 pt-3">
-        <p className="text-[7px] font-medium text-text-primary truncate text-center leading-tight">
+        <p className="text-[12px] font-medium text-text-primary truncate text-center leading-tight">
           {name.replace('HUM HEAD ', '').substring(0, 6)}
         </p>
       </div>
@@ -158,14 +163,21 @@ function HeadPreview({ modelPath, headId, textureVariant, skinColor, gender, gam
     })
   }, [clonedScene, texture])
 
+  const handleControlsChange = (e?: any) => {
+    if (e && e.target) {
+      const controls = e.target as OrbitControlsType
+      sharedAzimuthAngle = controls.getAzimuthalAngle()
+      sharedPolarAngle = controls.getPolarAngle()
+    }
+  }
+
   return (
-    <group rotation={[0.1, -Math.PI / 2, 0]} position={[0, 0.02, 0]}>
+    <group rotation={[0.1, -Math.PI / 3, 0]} position={[0, 0.02, 0]}>
       <primitive object={clonedScene} />
       <OrbitControls
         enableZoom={false}
         enablePan={false}
-        autoRotate
-        autoRotateSpeed={1.5}
+        enableRotate={false}
         target={[0, 0.18, 0]}
       />
     </group>
