@@ -47,7 +47,6 @@ export function VisualEditor() {
         </h3>
         <div className="space-y-4">
           <BodyTextureSelector />
-          <HeadTextureSelector />
         </div>
       </div>
 

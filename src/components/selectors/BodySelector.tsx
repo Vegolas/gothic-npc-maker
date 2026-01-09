@@ -11,6 +11,7 @@ import {
 /**
  * Body mesh selector component
  * Dynamically discovers available bodies based on selected gender and game version
+ * Hidden if only one body option exists
  */
 export function BodySelector() {
   const gender = useNPCStore((state) => state.config.gender)
@@ -19,6 +20,11 @@ export function BodySelector() {
   const setBodyMesh = useNPCStore((state) => state.setBodyMesh)
 
   const bodies = discoverBodies(gameVersion, gender)
+
+  // Hide selector if only one option
+  if (bodies.length <= 1) {
+    return null
+  }
 
   return (
     <Select value={bodyMesh} onValueChange={setBodyMesh}>
