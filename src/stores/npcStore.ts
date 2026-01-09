@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { NPCConfig, Gender, GameVersion, RoutineEntry } from '../types/npc'
 import { DEFAULT_NPC_CONFIG } from '../types/npc'
 import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles, discoverHeadVariantsForSkinColor } from '../utils/assetDiscovery'
@@ -60,47 +61,49 @@ interface NPCStore {
 }
 
 /**
- * Create the NPC store with Zustand
+ * Create the NPC store with Zustand and localStorage persistence
  */
-export const useNPCStore = create<NPCStore>((set) => ({
-  // Initial state
-  config: { ...DEFAULT_NPC_CONFIG },
+export const useNPCStore = create<NPCStore>()(
+  persist(
+    (set) => ({
+      // Initial state
+      config: { ...DEFAULT_NPC_CONFIG },
 
-  // Game version setter
-  setGameVersion: (gameVersion) =>
-    set((state) => {
-      // Set head offsets based on gender and game version
-      let headOffsetX = state.config.headOffsetX
-      let headOffsetY = state.config.headOffsetY
-      let headOffsetZ = state.config.headOffsetZ
+      // Game version setter
+      setGameVersion: (gameVersion) =>
+        set((state) => {
+          // Set head offsets based on gender and game version
+          let headOffsetX = state.config.headOffsetX
+          let headOffsetY = state.config.headOffsetY
+          let headOffsetZ = state.config.headOffsetZ
 
-      // Apply G1 female offsets when switching to G1 with female gender
-      if (gameVersion === 'g1' && state.config.gender === 'female') {
-        headOffsetX = 0.01
-        headOffsetY = 0.01
-        headOffsetZ = -0.10
-      } else if (gameVersion === 'g2' && state.config.gender === 'female') {
-        // Reset to default for G2 female
-        headOffsetX = 0
-        headOffsetY = 0.10
-        headOffsetZ = 0.02
-      } else if (state.config.gender === 'male') {
-        // Reset to default for males
-        headOffsetX = 0
-        headOffsetY = 0.10
-        headOffsetZ = 0.02
-      }
+          // Apply G1 female offsets when switching to G1 with female gender
+          if (gameVersion === 'g1' && state.config.gender === 'female') {
+            headOffsetX = 0.01
+            headOffsetY = 0.01
+            headOffsetZ = -0.10
+          } else if (gameVersion === 'g2' && state.config.gender === 'female') {
+            // Reset to default for G2 female
+            headOffsetX = 0
+            headOffsetY = 0.10
+            headOffsetZ = 0.02
+          } else if (state.config.gender === 'male') {
+            // Reset to default for males
+            headOffsetX = 0
+            headOffsetY = 0.10
+            headOffsetZ = 0.02
+          }
 
-      return {
-        config: {
-          ...state.config,
-          gameVersion,
-          headOffsetX,
-          headOffsetY,
-          headOffsetZ,
-        }
-      }
-    }),
+          return {
+            config: {
+              ...state.config,
+              gameVersion,
+              headOffsetX,
+              headOffsetY,
+              headOffsetZ,
+            }
+          }
+        }),
 
   // Identity setters
   setInstanceName: (instanceName) =>
@@ -319,7 +322,13 @@ export const useNPCStore = create<NPCStore>((set) => ({
     set((state) => ({
       config: { ...state.config, ...newConfig },
     })),
-}))
+}),
+    {
+      name: 'npc-creator-storage', // localStorage key
+      version: 1, // Version for migration if needed
+    }
+  )
+)
 
 /**
  * Selector hooks for specific parts of the config
