@@ -1,35 +1,25 @@
+import { useState, useEffect } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
-import { 
-  discoverBodyTextureFiles, 
-  discoverHeadTextureFiles, 
+import {
+  discoverBodyTextureFiles,
+  discoverHeadTextureFiles,
   discoverAllSkinColors,
   discoverBodyVariantsForSkinColor,
   discoverHeadVariantsForSkinColor,
-  discoverSkinColorsForBodyVariant
 } from '../../utils/assetDiscovery'
+import { getBodyTexturePath, getHeadTexturePath } from '../../utils/assetPaths'
 import { SliderNew } from '../ui/slider-new'
-import { useEffect } from 'react'
+import { Switch } from '../ui/switch'
+import { cn } from '../../lib/utils'
+import type { GameVersion, Gender } from '../../types/npc'
 
 /**
  * Unified texture selector with smart filtering
- * Approach: Skin Color first → filters Body/Head Variants
- * This ensures only compatible combinations are shown
+ * Supports both slider and card-based views
  */
 export function TextureSelector() {
   const gameVersion = useNPCStore((state) => state.config.gameVersion)
   const gender = useNPCStore((state) => state.config.gender)
-  const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
-  const headMesh = useNPCStore((state) => state.config.headMesh)
-  const bodyTextureFile = useNPCStore((state) => state.config.bodyTextureFile)
-  const headTextureFile = useNPCStore((state) => state.config.headTextureFile)
-  const bodyTextureVariant = useNPCStore((state) => state.config.bodyTexture)
-  const headTextureVariant = useNPCStore((state) => state.config.headTexture)
-  const skinColor = useNPCStore((state) => state.config.skinColor)
-  const setBodyTextureFile = useNPCStore((state) => state.setBodyTextureFile)
-  const setHeadTextureFile = useNPCStore((state) => state.setHeadTextureFile)
-  const setBodyTextureVariant = useNPCStore((state) => state.setBodyTexture)
-  const setHeadTextureVariant = useNPCStore((state) => state.setHeadTexture)
-  const setSkinColor = useNPCStore((state) => state.setSkinColor)
 
   // G1 Female uses file-based selection
   const isG1Female = gameVersion === 'g1' && gender === 'female'
@@ -42,7 +32,7 @@ export function TextureSelector() {
 }
 
 /**
- * G1 Female texture selector - file-based
+ * G1 Female texture selector - file-based (keeps slider for simplicity)
  */
 function G1FemaleTextureSelector() {
   const gameVersion = useNPCStore((state) => state.config.gameVersion)
@@ -56,14 +46,14 @@ function G1FemaleTextureSelector() {
 
   const bodyTextureFiles = discoverBodyTextureFiles(bodyMesh, gameVersion, gender)
   const headTextureFiles = discoverHeadTextureFiles(headMesh, gameVersion, gender)
-  
-  const bodyIndex = bodyTextureFile && bodyTextureFiles.length > 0 
-    ? bodyTextureFiles.indexOf(bodyTextureFile) 
+
+  const bodyIndex = bodyTextureFile && bodyTextureFiles.length > 0
+    ? bodyTextureFiles.indexOf(bodyTextureFile)
     : 0
   const safeBodyIndex = bodyIndex >= 0 && bodyIndex < bodyTextureFiles.length ? bodyIndex : 0
-  
+
   const headIndex = headTextureFile && headTextureFiles.length > 0
-    ? headTextureFiles.indexOf(headTextureFile) 
+    ? headTextureFiles.indexOf(headTextureFile)
     : 0
   const safeHeadIndex = headIndex >= 0 && headIndex < headTextureFiles.length ? headIndex : 0
 
@@ -87,7 +77,7 @@ function G1FemaleTextureSelector() {
       ) : (
         <div className="text-xs text-text-muted">No body textures found</div>
       )}
-      
+
       {headTextureFiles.length > 0 ? (
         <div className="space-y-2">
           <SliderNew
@@ -112,8 +102,11 @@ function G1FemaleTextureSelector() {
 
 /**
  * Standard texture selector - variant-based with skin color
+ * Supports both slider and card-based views
  */
 function StandardTextureSelector() {
+  const [useCardView, setUseCardView] = useState(true)
+
   const gameVersion = useNPCStore((state) => state.config.gameVersion)
   const gender = useNPCStore((state) => state.config.gender)
   const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
@@ -164,43 +157,414 @@ function StandardTextureSelector() {
 
   return (
     <div className="space-y-4">
-      {/* Skin Color - Primary selector */}
+      {/* View Toggle */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-text-muted">View Mode</span>
+        <Switch
+          checked={useCardView}
+          onCheckedChange={setUseCardView}
+          label={useCardView ? 'Cards' : 'Sliders'}
+        />
+      </div>
+
+      {useCardView ? (
+        <CardBasedSelector
+          availableSkinColors={availableSkinColors}
+          availableBodyVariants={availableBodyVariants}
+          availableHeadVariants={availableHeadVariants}
+          skinColor={skinColor}
+          bodyTextureVariant={bodyTextureVariant}
+          headTextureVariant={headTextureVariant}
+          setSkinColor={setSkinColor}
+          setBodyTextureVariant={setBodyTextureVariant}
+          setHeadTextureVariant={setHeadTextureVariant}
+          bodyMesh={bodyMesh}
+          headMesh={headMesh}
+          gameVersion={gameVersion}
+          gender={gender}
+        />
+      ) : (
+        <SliderBasedSelector
+          availableSkinColors={availableSkinColors}
+          availableBodyVariants={availableBodyVariants}
+          availableHeadVariants={availableHeadVariants}
+          safeSkinColorIndex={safeSkinColorIndex}
+          safeBodyVariantIndex={safeBodyVariantIndex}
+          safeHeadVariantIndex={safeHeadVariantIndex}
+          setSkinColor={(index) => setSkinColor(availableSkinColors[index])}
+          setBodyTextureVariant={(index) => setBodyTextureVariant(availableBodyVariants[index])}
+          setHeadTextureVariant={(index) => setHeadTextureVariant(availableHeadVariants[index])}
+        />
+      )}
+    </div>
+  )
+}
+
+interface SliderBasedSelectorProps {
+  availableSkinColors: number[]
+  availableBodyVariants: number[]
+  availableHeadVariants: number[]
+  safeSkinColorIndex: number
+  safeBodyVariantIndex: number
+  safeHeadVariantIndex: number
+  setSkinColor: (index: number) => void
+  setBodyTextureVariant: (index: number) => void
+  setHeadTextureVariant: (index: number) => void
+}
+
+function SliderBasedSelector({
+  availableSkinColors,
+  availableBodyVariants,
+  availableHeadVariants,
+  safeSkinColorIndex,
+  safeBodyVariantIndex,
+  safeHeadVariantIndex,
+  setSkinColor,
+  setBodyTextureVariant,
+  setHeadTextureVariant,
+}: SliderBasedSelectorProps) {
+  return (
+    <div className="space-y-4">
       <SliderNew
         label="Skin Color"
         min={0}
         max={Math.max(0, availableSkinColors.length - 1)}
         step={1}
         value={[safeSkinColorIndex]}
-        onValueChange={([index]) => setSkinColor(availableSkinColors[index])}
+        onValueChange={([index]) => setSkinColor(index)}
         valueFormat={(index) => `C${availableSkinColors[index]}`}
       />
-      
-      {/* Body Variant - Filtered by skin color */}
-      {availableBodyVariants.length > 0 && (
+
+      {availableBodyVariants.length > 1 && (
         <SliderNew
           label="Body Variant"
           min={0}
           max={Math.max(0, availableBodyVariants.length - 1)}
           step={1}
           value={[safeBodyVariantIndex]}
-          onValueChange={([index]) => setBodyTextureVariant(availableBodyVariants[index])}
+          onValueChange={([index]) => setBodyTextureVariant(index)}
           valueFormat={(index) => `V${availableBodyVariants[index]}`}
         />
       )}
-      
-      {/* Head Variant - Filtered by skin color */}
-      {availableHeadVariants.length > 0 && (
+
+      {availableHeadVariants.length > 1 && (
         <SliderNew
           label="Head Variant"
           min={0}
           max={Math.max(0, availableHeadVariants.length - 1)}
           step={1}
           value={[safeHeadVariantIndex]}
-          onValueChange={([index]) => setHeadTextureVariant(availableHeadVariants[index])}
+          onValueChange={([index]) => setHeadTextureVariant(index)}
           valueFormat={(index) => `V${availableHeadVariants[index]}`}
         />
       )}
     </div>
+  )
+}
+
+interface CardBasedSelectorProps {
+  availableSkinColors: number[]
+  availableBodyVariants: number[]
+  availableHeadVariants: number[]
+  skinColor: number
+  bodyTextureVariant: number
+  headTextureVariant: number
+  setSkinColor: (color: number) => void
+  setBodyTextureVariant: (variant: number) => void
+  setHeadTextureVariant: (variant: number) => void
+  bodyMesh: string
+  headMesh: string
+  gameVersion: GameVersion
+  gender: Gender
+}
+
+function CardBasedSelector({
+  availableSkinColors,
+  availableBodyVariants,
+  availableHeadVariants,
+  skinColor,
+  bodyTextureVariant,
+  headTextureVariant,
+  setSkinColor,
+  setBodyTextureVariant,
+  setHeadTextureVariant,
+  bodyMesh,
+  headMesh,
+  gameVersion,
+  gender,
+}: CardBasedSelectorProps) {
+  return (
+    <div className="space-y-4">
+      {/* Skin Color Cards */}
+      {availableSkinColors.length > 1 && (
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
+            Skin Color
+          </label>
+          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+            {availableSkinColors.map((color) => (
+              <SkinColorCard
+                key={color}
+                colorIndex={color}
+                isSelected={skinColor === color}
+                onClick={() => setSkinColor(color)}
+                bodyMesh={bodyMesh}
+                bodyVariant={bodyTextureVariant}
+                gameVersion={gameVersion}
+                gender={gender}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Body Variant Cards */}
+      {availableBodyVariants.length > 1 && (
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
+            Body Variant
+          </label>
+          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+            {availableBodyVariants.map((variant) => (
+              <BodyVariantCard
+                key={variant}
+                variant={variant}
+                isSelected={bodyTextureVariant === variant}
+                onClick={() => setBodyTextureVariant(variant)}
+                bodyMesh={bodyMesh}
+                skinColor={skinColor}
+                gameVersion={gameVersion}
+                gender={gender}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Head Variant Cards */}
+      {availableHeadVariants.length > 1 && (
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
+            Head Variant
+          </label>
+          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+            {availableHeadVariants.map((variant) => (
+              <HeadVariantCard
+                key={variant}
+                variant={variant}
+                isSelected={headTextureVariant === variant}
+                onClick={() => setHeadTextureVariant(variant)}
+                headMesh={headMesh}
+                skinColor={skinColor}
+                gameVersion={gameVersion}
+                gender={gender}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface SkinColorCardProps {
+  colorIndex: number
+  isSelected: boolean
+  onClick: () => void
+  bodyMesh: string
+  bodyVariant: number
+  gameVersion: GameVersion
+  gender: Gender
+}
+
+function SkinColorCard({
+  colorIndex,
+  isSelected,
+  onClick,
+  bodyMesh,
+  bodyVariant,
+  gameVersion,
+  gender,
+}: SkinColorCardProps) {
+  const texturePath = getBodyTexturePath(bodyMesh, bodyVariant, colorIndex, gender, gameVersion)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative aspect-square rounded border overflow-hidden transition-all",
+        "hover:scale-105 hover:shadow-md",
+        isSelected
+          ? "border-ember shadow-sm shadow-ember/20 ring-1 ring-ember"
+          : "border-iron-dark/50 hover:border-iron"
+      )}
+    >
+      {/* Texture Preview */}
+      <div className="absolute inset-0 bg-obsidian-darker">
+        {texturePath ? (
+          <img
+            src={texturePath}
+            alt={`Skin C${colorIndex}`}
+            className="w-full h-full object-cover"
+            draggable={false}
+            style={{ imageRendering: 'pixelated' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-xs text-text-muted">C{colorIndex}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Label overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker/90 to-transparent px-0.5 pb-0.5 pt-1">
+        <p className="text-[8px] font-medium text-text-primary text-center">
+          C{colorIndex}
+        </p>
+      </div>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <div className="absolute top-0 right-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-ember" />
+        </div>
+      )}
+    </button>
+  )
+}
+
+interface BodyVariantCardProps {
+  variant: number
+  isSelected: boolean
+  onClick: () => void
+  bodyMesh: string
+  skinColor: number
+  gameVersion: GameVersion
+  gender: Gender
+}
+
+function BodyVariantCard({
+  variant,
+  isSelected,
+  onClick,
+  bodyMesh,
+  skinColor,
+  gameVersion,
+  gender,
+}: BodyVariantCardProps) {
+  const texturePath = getBodyTexturePath(bodyMesh, variant, skinColor, gender, gameVersion)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative aspect-square rounded border overflow-hidden transition-all",
+        "hover:scale-105 hover:shadow-md",
+        isSelected
+          ? "border-ember shadow-sm shadow-ember/20 ring-1 ring-ember"
+          : "border-iron-dark/50 hover:border-iron"
+      )}
+    >
+      {/* Texture Preview */}
+      <div className="absolute inset-0 bg-obsidian-darker">
+        {texturePath ? (
+          <img
+            src={texturePath}
+            alt={`Body V${variant}`}
+            className="w-full h-full object-cover"
+            draggable={false}
+            style={{ imageRendering: 'pixelated' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-xs text-text-muted">V{variant}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Label overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker/90 to-transparent px-0.5 pb-0.5 pt-1">
+        <p className="text-[8px] font-medium text-text-primary text-center">
+          V{variant}
+        </p>
+      </div>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <div className="absolute top-0 right-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-ember" />
+        </div>
+      )}
+    </button>
+  )
+}
+
+interface HeadVariantCardProps {
+  variant: number
+  isSelected: boolean
+  onClick: () => void
+  headMesh: string
+  skinColor: number
+  gameVersion: GameVersion
+  gender: Gender
+}
+
+function HeadVariantCard({
+  variant,
+  isSelected,
+  onClick,
+  headMesh,
+  skinColor,
+  gameVersion,
+  gender,
+}: HeadVariantCardProps) {
+  const texturePath = getHeadTexturePath(headMesh, variant, skinColor, gender, gameVersion)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative aspect-square rounded border overflow-hidden transition-all",
+        "hover:scale-105 hover:shadow-md",
+        isSelected
+          ? "border-ember shadow-sm shadow-ember/20 ring-1 ring-ember"
+          : "border-iron-dark/50 hover:border-iron"
+      )}
+    >
+      {/* Texture Preview */}
+      <div className="absolute inset-0 bg-obsidian-darker">
+        {texturePath ? (
+          <img
+            src={texturePath}
+            alt={`Head V${variant}`}
+            className="w-full h-full object-cover"
+            draggable={false}
+            style={{ imageRendering: 'pixelated' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-xs text-text-muted">V{variant}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Label overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker/90 to-transparent px-0.5 pb-0.5 pt-1">
+        <p className="text-[8px] font-medium text-text-primary text-center">
+          V{variant}
+        </p>
+      </div>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <div className="absolute top-0 right-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-ember" />
+        </div>
+      )}
+    </button>
   )
 }
 
