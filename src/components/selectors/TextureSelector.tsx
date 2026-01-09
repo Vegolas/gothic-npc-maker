@@ -35,53 +35,95 @@ export function TextureSelector() {
   const isG1Female = gameVersion === 'g1' && gender === 'female'
 
   if (isG1Female) {
-    const bodyTextureFiles = discoverBodyTextureFiles(bodyMesh, gameVersion, gender)
-    const headTextureFiles = discoverHeadTextureFiles(headMesh, gameVersion, gender)
-    
-    const bodyIndex = bodyTextureFile ? bodyTextureFiles.indexOf(bodyTextureFile) : 0
-    const safeBodyIndex = bodyIndex >= 0 ? bodyIndex : 0
-    
-    const headIndex = headTextureFile ? headTextureFiles.indexOf(headTextureFile) : 0
-    const safeHeadIndex = headIndex >= 0 ? headIndex : 0
-
-    return (
-      <div className="space-y-4">
-        {bodyTextureFiles.length > 0 ? (
-          <div className="space-y-2">
-            <SliderNew
-              label="Body Texture"
-              min={0}
-              max={bodyTextureFiles.length - 1}
-              step={1}
-              value={[safeBodyIndex]}
-              onValueChange={([value]) => setBodyTextureFile(bodyTextureFiles[value] || null)}
-              valueFormat={(v) => `${v + 1}/${bodyTextureFiles.length}`}
-            />
-            <TextureFileDisplay filename={bodyTextureFiles[safeBodyIndex]} />
-          </div>
-        ) : (
-          <div className="text-xs text-text-muted">No body textures found</div>
-        )}
-        
-        {headTextureFiles.length > 0 ? (
-          <div className="space-y-2">
-            <SliderNew
-              label="Head Texture"
-              min={0}
-              max={headTextureFiles.length - 1}
-              step={1}
-              value={[safeHeadIndex]}
-              onValueChange={([value]) => setHeadTextureFile(headTextureFiles[value] || null)}
-              valueFormat={(v) => `${v + 1}/${headTextureFiles.length}`}
-            />
-            <TextureFileDisplay filename={headTextureFiles[safeHeadIndex]} />
-          </div>
-        ) : (
-          <div className="text-xs text-text-muted">No head textures found</div>
-        )}
-      </div>
-    )
+    return <G1FemaleTextureSelector />
   }
+
+  return <StandardTextureSelector />
+}
+
+/**
+ * G1 Female texture selector - file-based
+ */
+function G1FemaleTextureSelector() {
+  const gameVersion = useNPCStore((state) => state.config.gameVersion)
+  const gender = useNPCStore((state) => state.config.gender)
+  const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
+  const headMesh = useNPCStore((state) => state.config.headMesh)
+  const bodyTextureFile = useNPCStore((state) => state.config.bodyTextureFile)
+  const headTextureFile = useNPCStore((state) => state.config.headTextureFile)
+  const setBodyTextureFile = useNPCStore((state) => state.setBodyTextureFile)
+  const setHeadTextureFile = useNPCStore((state) => state.setHeadTextureFile)
+
+  const bodyTextureFiles = discoverBodyTextureFiles(bodyMesh, gameVersion, gender)
+  const headTextureFiles = discoverHeadTextureFiles(headMesh, gameVersion, gender)
+  
+  const bodyIndex = bodyTextureFile && bodyTextureFiles.length > 0 
+    ? bodyTextureFiles.indexOf(bodyTextureFile) 
+    : 0
+  const safeBodyIndex = bodyIndex >= 0 && bodyIndex < bodyTextureFiles.length ? bodyIndex : 0
+  
+  const headIndex = headTextureFile && headTextureFiles.length > 0
+    ? headTextureFiles.indexOf(headTextureFile) 
+    : 0
+  const safeHeadIndex = headIndex >= 0 && headIndex < headTextureFiles.length ? headIndex : 0
+
+  return (
+    <div className="space-y-4">
+      {bodyTextureFiles.length > 0 ? (
+        <div className="space-y-2">
+          <SliderNew
+            label="Body Texture"
+            min={0}
+            max={Math.max(0, bodyTextureFiles.length - 1)}
+            step={1}
+            value={[safeBodyIndex]}
+            onValueChange={([value]) => setBodyTextureFile(bodyTextureFiles[value] || null)}
+            valueFormat={(v) => `${v + 1}/${bodyTextureFiles.length}`}
+          />
+          {bodyTextureFiles[safeBodyIndex] && (
+            <TextureFileDisplay filename={bodyTextureFiles[safeBodyIndex]} />
+          )}
+        </div>
+      ) : (
+        <div className="text-xs text-text-muted">No body textures found</div>
+      )}
+      
+      {headTextureFiles.length > 0 ? (
+        <div className="space-y-2">
+          <SliderNew
+            label="Head Texture"
+            min={0}
+            max={Math.max(0, headTextureFiles.length - 1)}
+            step={1}
+            value={[safeHeadIndex]}
+            onValueChange={([value]) => setHeadTextureFile(headTextureFiles[value] || null)}
+            valueFormat={(v) => `${v + 1}/${headTextureFiles.length}`}
+          />
+          {headTextureFiles[safeHeadIndex] && (
+            <TextureFileDisplay filename={headTextureFiles[safeHeadIndex]} />
+          )}
+        </div>
+      ) : (
+        <div className="text-xs text-text-muted">No head textures found</div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Standard texture selector - variant-based with skin color
+ */
+function StandardTextureSelector() {
+  const gameVersion = useNPCStore((state) => state.config.gameVersion)
+  const gender = useNPCStore((state) => state.config.gender)
+  const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
+  const headMesh = useNPCStore((state) => state.config.headMesh)
+  const bodyTextureVariant = useNPCStore((state) => state.config.bodyTexture)
+  const headTextureVariant = useNPCStore((state) => state.config.headTexture)
+  const skinColor = useNPCStore((state) => state.config.skinColor)
+  const setBodyTextureVariant = useNPCStore((state) => state.setBodyTexture)
+  const setHeadTextureVariant = useNPCStore((state) => state.setHeadTexture)
+  const setSkinColor = useNPCStore((state) => state.setSkinColor)
 
   // Smart filtering approach: Skin Color → Body/Head Variants
   const availableSkinColors = discoverAllSkinColors(gameVersion, gender)
@@ -111,15 +153,24 @@ export function TextureSelector() {
     return <div className="text-xs text-text-muted">No textures found</div>
   }
 
+  const skinColorIndex = availableSkinColors.indexOf(skinColor)
+  const safeSkinColorIndex = skinColorIndex >= 0 ? skinColorIndex : 0
+
+  const bodyVariantIndex = availableBodyVariants.indexOf(bodyTextureVariant)
+  const safeBodyVariantIndex = bodyVariantIndex >= 0 ? bodyVariantIndex : 0
+
+  const headVariantIndex = availableHeadVariants.indexOf(headTextureVariant)
+  const safeHeadVariantIndex = headVariantIndex >= 0 ? headVariantIndex : 0
+
   return (
     <div className="space-y-4">
       {/* Skin Color - Primary selector */}
       <SliderNew
         label="Skin Color"
         min={0}
-        max={availableSkinColors.length - 1}
+        max={Math.max(0, availableSkinColors.length - 1)}
         step={1}
-        value={[availableSkinColors.indexOf(skinColor)]}
+        value={[safeSkinColorIndex]}
         onValueChange={([index]) => setSkinColor(availableSkinColors[index])}
         valueFormat={(index) => `C${availableSkinColors[index]}`}
       />
@@ -129,9 +180,9 @@ export function TextureSelector() {
         <SliderNew
           label="Body Variant"
           min={0}
-          max={availableBodyVariants.length - 1}
+          max={Math.max(0, availableBodyVariants.length - 1)}
           step={1}
-          value={[availableBodyVariants.indexOf(bodyTextureVariant)]}
+          value={[safeBodyVariantIndex]}
           onValueChange={([index]) => setBodyTextureVariant(availableBodyVariants[index])}
           valueFormat={(index) => `V${availableBodyVariants[index]}`}
         />
@@ -142,9 +193,9 @@ export function TextureSelector() {
         <SliderNew
           label="Head Variant"
           min={0}
-          max={availableHeadVariants.length - 1}
+          max={Math.max(0, availableHeadVariants.length - 1)}
           step={1}
-          value={[availableHeadVariants.indexOf(headTextureVariant)]}
+          value={[safeHeadVariantIndex]}
           onValueChange={([index]) => setHeadTextureVariant(availableHeadVariants[index])}
           valueFormat={(index) => `V${availableHeadVariants[index]}`}
         />

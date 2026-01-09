@@ -543,7 +543,7 @@ export function discoverVoiceSets(gameVersion: GameVersion, gender: Gender): Arr
 
 /**
  * Discover scenes from GLB files
- * Expects scene files at: /public/assets/{g1|g2}/scenes/*.glb
+ * Expects scene files at: /public/assets/scenes/*.glb
  */
 export function discoverScenes(gameVersion: GameVersion): Array<{
   id: string
@@ -551,7 +551,7 @@ export function discoverScenes(gameVersion: GameVersion): Array<{
   path: string
 }> {
   const scenes: Array<{ id: string; fileName: string; path: string }> = []
-  const pattern = `/public/assets/${gameVersion}/scenes/`
+  const pattern = `/public/assets/scenes/`
 
   for (const [path] of Object.entries(sceneFiles)) {
     if (path.startsWith(pattern)) {

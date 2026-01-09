@@ -16,6 +16,7 @@ let sharedPolarAngle = 0.1
 /**
  * Head mesh selector component
  * Visual card-based selector with 3D previews
+ * Hidden if only one head option exists
  */
 export function HeadSelector() {
   const gender = useNPCStore((state) => state.config.gender)
@@ -26,6 +27,11 @@ export function HeadSelector() {
   const setHeadMesh = useNPCStore((state) => state.setHeadMesh)
 
   const heads = discoverHeads(gameVersion, gender)
+
+  // Hide selector if only one option
+  if (heads.length <= 1) {
+    return null
+  }
 
   return (
     <div className="space-y-2">
