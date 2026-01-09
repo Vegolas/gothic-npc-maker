@@ -12,7 +12,8 @@
       "mcp__shadcn__list_shadcn_components",
       "mcp__shadcn__get_component_details",
       "Bash(npm run dev:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }
