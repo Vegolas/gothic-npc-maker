@@ -1,14 +1,17 @@
+import { useEffect } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
 import { discoverArmors } from '../../utils/assetDiscovery'
-import { Canvas } from '@react-three/fiber'
-import { Suspense, useEffect, useMemo } from 'react'
-import { useGLTF } from '@react-three/drei'
 import { cn } from '../../lib/utils'
-import { MeshBasicMaterial, type Mesh } from 'three'
+import {
+  useThumbnailStore,
+  getArmorThumbnailKey,
+} from '../../stores/thumbnailStore'
+import { queueArmorThumbnail } from '../preview/ThumbnailRenderer'
+import type { GameVersion } from '../../types/npc'
 
 /**
  * Armor selector component
- * Visual card-based selector with 3D previews
+ * Visual card-based selector with cached thumbnail previews
  * Hidden for G1 Female (armors don't work with G1 females)
  */
 export function ArmorSelector() {
@@ -23,6 +26,13 @@ export function ArmorSelector() {
   }
 
   const armors = discoverArmors(gameVersion)
+
+  // Queue thumbnail generation for all armors
+  useEffect(() => {
+    armors.forEach((armor) => {
+      queueArmorThumbnail(armor.id, armor.path, gameVersion)
+    })
+  }, [armors, gameVersion])
 
   return (
     <div className="space-y-2">
@@ -39,10 +49,12 @@ export function ArmorSelector() {
         {armors.map((armor) => (
           <ArmorCard
             key={armor.id}
+            id={armor.id}
             name={armor.name}
             path={armor.path}
             isSelected={armorInstance === armor.id}
             onClick={() => setArmorInstance(armor.id)}
+            gameVersion={gameVersion}
           />
         ))}
       </div>
@@ -70,7 +82,7 @@ function NoArmorCard({ isSelected, onClick }: NoArmorCardProps) {
       )}
     >
       {/* No armor icon */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center bg-obsidian-darker">
         <svg
           className="w-8 h-8 text-iron opacity-50"
           fill="none"
@@ -108,13 +120,19 @@ function NoArmorCard({ isSelected, onClick }: NoArmorCardProps) {
 }
 
 interface ArmorCardProps {
+  id: string
   name: string
   path: string
   isSelected: boolean
   onClick: () => void
+  gameVersion: GameVersion
 }
 
-function ArmorCard({ name, path, isSelected, onClick }: ArmorCardProps) {
+function ArmorCard({ id, name, isSelected, onClick, gameVersion }: ArmorCardProps) {
+  const thumbnailKey = getArmorThumbnailKey(id, gameVersion)
+  const thumbnail = useThumbnailStore((state) => state.getThumbnail(thumbnailKey))
+  const isPending = useThumbnailStore((state) => state.isPending(thumbnailKey))
+
   return (
     <button
       type="button"
@@ -127,17 +145,24 @@ function ArmorCard({ name, path, isSelected, onClick }: ArmorCardProps) {
           : "border-iron-dark hover:border-iron bg-obsidian"
       )}
     >
-      {/* 3D Preview */}
-      <div className="absolute inset-0">
-        <Canvas
-          camera={{ position: [0, 0.9, 2.5], fov: 45 }}
-          gl={{ antialias: true, alpha: true }}
-        >
-          <Suspense fallback={null}>
-            <ambientLight intensity={1} color="#b3d9ff" />
-            <ArmorPreview modelPath={path} />
-          </Suspense>
-        </Canvas>
+      {/* Thumbnail Preview */}
+      <div className="absolute inset-0 flex items-center justify-center bg-obsidian-darker">
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={name}
+            className="w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : isPending ? (
+          <div className="w-6 h-6 border-2 border-ember/30 border-t-ember rounded-full animate-spin" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-stone/30 flex items-center justify-center">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Label overlay */}
@@ -188,43 +213,4 @@ function formatArmorName(name: string): string {
   }
 
   return formatted
-}
-
-interface ArmorPreviewProps {
-  modelPath: string
-}
-
-function ArmorPreview({ modelPath }: ArmorPreviewProps) {
-  const { scene } = useGLTF(modelPath, true)
-
-  // Clone scene and convert to basic materials
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone(true)
-    return clone
-  }, [scene])
-
-  // Convert materials to flat/unlit (MeshBasicMaterial)
-  useEffect(() => {
-    clonedScene.traverse((child) => {
-      if ((child as Mesh).isMesh) {
-        const mesh = child as Mesh
-        const oldMaterial = mesh.material as MeshBasicMaterial
-
-        // Preserve existing texture or color
-        if (oldMaterial.map) {
-          mesh.material = new MeshBasicMaterial({ map: oldMaterial.map })
-        } else if (oldMaterial.color) {
-          mesh.material = new MeshBasicMaterial({ color: oldMaterial.color })
-        } else {
-          mesh.material = new MeshBasicMaterial({ color: '#888888' })
-        }
-      }
-    })
-  }, [clonedScene])
-
-  return (
-    <group rotation={[0.1, -Math.PI / 4, 0]} position={[0, -0.6, 0]}>
-      <primitive object={clonedScene} />
-    </group>
-  )
 }

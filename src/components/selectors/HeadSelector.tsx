@@ -1,21 +1,17 @@
+import { useEffect } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
 import { discoverHeads } from '../../utils/assetDiscovery'
-import { Canvas } from '@react-three/fiber'
-import { Suspense, useEffect, useMemo, useState } from 'react'
-import { useGLTF, OrbitControls } from '@react-three/drei'
 import { cn } from '../../lib/utils'
-import { getHeadTexturePath } from '../../utils/assetPaths'
-import { loadTextureAsync } from '../../utils/textureLoader'
-import { MeshBasicMaterial, type Mesh, type Texture } from 'three'
-import type { OrbitControls as OrbitControlsType } from 'three-stdlib'
-
-// Shared rotation state
-let sharedAzimuthAngle = 0
-let sharedPolarAngle = 0.1
+import {
+  useThumbnailStore,
+  getHeadThumbnailKey,
+} from '../../stores/thumbnailStore'
+import { queueHeadThumbnail } from '../preview/ThumbnailRenderer'
+import type { GameVersion, Gender } from '../../types/npc'
 
 /**
  * Head mesh selector component
- * Visual card-based selector with 3D previews
+ * Visual card-based selector with cached thumbnail previews
  * Hidden if only one head option exists
  */
 export function HeadSelector() {
@@ -27,6 +23,20 @@ export function HeadSelector() {
   const setHeadMesh = useNPCStore((state) => state.setHeadMesh)
 
   const heads = discoverHeads(gameVersion, gender)
+
+  // Queue thumbnail generation for all heads
+  useEffect(() => {
+    heads.forEach((head) => {
+      queueHeadThumbnail(
+        head.id,
+        head.path,
+        headTextureVariant,
+        skinColor,
+        gender,
+        gameVersion
+      )
+    })
+  }, [heads, headTextureVariant, skinColor, gender, gameVersion])
 
   // Hide selector if only one option
   if (heads.length <= 1) {
@@ -66,11 +76,24 @@ interface HeadCardProps {
   onClick: () => void
   textureVariant: number
   skinColor: number
-  gender: string
-  gameVersion: string
+  gender: Gender
+  gameVersion: GameVersion
 }
 
-function HeadCard({ id, name, path, isSelected, onClick, textureVariant, skinColor, gender, gameVersion }: HeadCardProps) {
+function HeadCard({
+  id,
+  name,
+  isSelected,
+  onClick,
+  textureVariant,
+  skinColor,
+  gender,
+  gameVersion
+}: HeadCardProps) {
+  const thumbnailKey = getHeadThumbnailKey(id, textureVariant, skinColor, gameVersion, gender)
+  const thumbnail = useThumbnailStore((state) => state.getThumbnail(thumbnailKey))
+  const isPending = useThumbnailStore((state) => state.isPending(thumbnailKey))
+
   return (
     <button
       type="button"
@@ -83,24 +106,24 @@ function HeadCard({ id, name, path, isSelected, onClick, textureVariant, skinCol
           : "border-iron-dark hover:border-iron bg-obsidian"
       )}
     >
-      {/* 3D Preview */}
-      <div className="absolute inset-0">
-        <Canvas
-          camera={{ position: [0, 0.18, 0.75], fov: 45 }}
-          gl={{ antialias: true, alpha: true }}
-        >
-          <Suspense fallback={null}>
-            <ambientLight intensity={1} color="#b3d9ff" />
-            <HeadPreview
-              modelPath={path}
-              headId={id}
-              textureVariant={textureVariant}
-              skinColor={skinColor}
-              gender={gender as any}
-              gameVersion={gameVersion as any}
-            />
-          </Suspense>
-        </Canvas>
+      {/* Thumbnail Preview */}
+      <div className="absolute inset-0 flex items-center justify-center bg-obsidian-darker">
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={name}
+            className="w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : isPending ? (
+          <div className="w-6 h-6 border-2 border-ember/30 border-t-ember rounded-full animate-spin" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-stone/30 flex items-center justify-center">
+            <svg className="w-4 h-4 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Label overlay */}
@@ -121,71 +144,5 @@ function HeadCard({ id, name, path, isSelected, onClick, textureVariant, skinCol
         </div>
       )}
     </button>
-  )
-}
-
-interface HeadPreviewProps {
-  modelPath: string
-  headId: string
-  textureVariant: number
-  skinColor: number
-  gender: any
-  gameVersion: any
-}
-
-function HeadPreview({ modelPath, headId, textureVariant, skinColor, gender, gameVersion }: HeadPreviewProps) {
-  const { scene } = useGLTF(modelPath, true)
-  const [texture, setTexture] = useState<Texture | null>(null)
-
-  const texturePath = getHeadTexturePath(headId, textureVariant, skinColor, gender, gameVersion)
-
-  // Load texture
-  useEffect(() => {
-    setTexture(null)
-    loadTextureAsync(texturePath, (loadedTexture) => {
-      if (loadedTexture && loadedTexture.image) {
-        setTexture(loadedTexture)
-      }
-    })
-  }, [texturePath])
-
-  // Clone scene
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone(true)
-    return clone
-  }, [scene])
-
-  // Apply texture
-  useEffect(() => {
-    clonedScene.traverse((child) => {
-      if ((child as Mesh).isMesh) {
-        const mesh = child as Mesh
-        if (texture) {
-          mesh.material = new MeshBasicMaterial({ map: texture })
-        } else {
-          mesh.material = new MeshBasicMaterial({ color: '#d4a574' })
-        }
-      }
-    })
-  }, [clonedScene, texture])
-
-  const handleControlsChange = (e?: any) => {
-    if (e && e.target) {
-      const controls = e.target as OrbitControlsType
-      sharedAzimuthAngle = controls.getAzimuthalAngle()
-      sharedPolarAngle = controls.getPolarAngle()
-    }
-  }
-
-  return (
-    <group rotation={[0.1, -Math.PI / 3, 0]} position={[0, 0.02, 0]}>
-      <primitive object={clonedScene} />
-      <OrbitControls
-        enableZoom={false}
-        enablePan={false}
-        enableRotate={false}
-        target={[0, 0.18, 0]}
-      />
-    </group>
   )
 }

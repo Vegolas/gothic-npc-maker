@@ -4,6 +4,7 @@ import { MainPanel } from './components/layout/MainPanel'
 import { BottomPanel } from './components/layout/BottomPanel'
 import { ExportPanel } from './components/ExportPanel'
 import { GameSelector } from './components/selectors'
+import { ThumbnailRenderer } from './components/preview/ThumbnailRenderer'
 import { Flame, Sword } from 'lucide-react'
 
 /**
@@ -104,6 +105,9 @@ function App() {
           <MainPanel />
         </Suspense>
       </div>
+
+      {/* Hidden thumbnail renderer for generating preview images */}
+      <ThumbnailRenderer />
     </div>
   )
 }
