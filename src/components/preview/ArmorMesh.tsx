@@ -65,6 +65,7 @@ interface ArmorMeshLoaderProps {
 function ArmorMeshLoader({ modelPath, fatness, bodyTexturePath }: ArmorMeshLoaderProps) {
   const { scene } = useGLTF(modelPath, true)
   const [bodyTexture, setBodyTexture] = useState<Texture | null>(null)
+  const [skinMeshes, setSkinMeshes] = useState<Mesh[]>([])
 
   // Load body texture
   useEffect(() => {
@@ -76,27 +77,44 @@ function ArmorMeshLoader({ modelPath, fatness, bodyTexturePath }: ArmorMeshLoade
     })
   }, [bodyTexturePath])
 
-  // Clone scene
+  // Clone scene and identify skin meshes
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true)
+    const skinMeshesList: Mesh[] = []
+    
+    clone.traverse((child) => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh
+        const material = mesh.material as MeshBasicMaterial
+        
+        // Check if this material uses a skin texture using the texture name property
+        const textureName = material.map?.name
+        const isSkinMaterial = textureName && textureName.match(/HUM_BODY_NAKED.*_V\d+_C\d+/i)
+        
+        if (isSkinMaterial) {
+          skinMeshesList.push(mesh)
+        }
+      }
+    })
+    
+    setSkinMeshes(skinMeshesList)
     return clone
   }, [scene])
 
-  // Convert materials to flat/unlit and replace skin textures
+  // Convert materials to flat/unlit
   useEffect(() => {
     clonedScene.traverse((child) => {
       if ((child as Mesh).isMesh) {
         const mesh = child as Mesh
         const oldMaterial = mesh.material as MeshBasicMaterial
         
-        // Check if this material uses a skin texture (HUM_BODY_NAKED pattern)
-        const isSkinMaterial = oldMaterial.map?.image?.src?.match(/HUM_BODY_NAKED.*_V\d+_C\d+/i)
+        // Don't process skin meshes here - they'll be handled separately
+        if (skinMeshes.includes(mesh)) {
+          return
+        }
         
-        if (isSkinMaterial && bodyTexture) {
-          // Replace with selected body texture
-          mesh.material = new MeshBasicMaterial({ map: bodyTexture })
-        } else if (oldMaterial.map) {
-          // Preserve existing texture
+        // Preserve existing texture or color
+        if (oldMaterial.map) {
           mesh.material = new MeshBasicMaterial({ map: oldMaterial.map })
         } else if (oldMaterial.color) {
           mesh.material = new MeshBasicMaterial({ color: oldMaterial.color })
@@ -105,7 +123,16 @@ function ArmorMeshLoader({ modelPath, fatness, bodyTexturePath }: ArmorMeshLoade
         }
       }
     })
-  }, [clonedScene, bodyTexture])
+  }, [clonedScene, skinMeshes])
+
+  // Update skin meshes whenever body texture changes
+  useEffect(() => {
+    if (!bodyTexture || skinMeshes.length === 0) return
+
+    skinMeshes.forEach((mesh) => {
+      mesh.material = new MeshBasicMaterial({ map: bodyTexture })
+    })
+  }, [bodyTexture, skinMeshes])
 
   // Apply fatness scaling (X and Z only, preserves height)
   return (
