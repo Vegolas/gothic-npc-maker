@@ -28,19 +28,21 @@ export function BottomPanel() {
           </TabsList>
         </div>
 
-        <ScrollArea className="flex-1">
-          <TabsContent value="visual" className="m-0 p-5">
-            <VisualEditor />
-          </TabsContent>
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <TabsContent value="visual" className="m-0 p-5">
+              <VisualEditor />
+            </TabsContent>
 
-          <TabsContent value="identity" className="m-0 p-5">
-            <IdentityEditor />
-          </TabsContent>
+            <TabsContent value="identity" className="m-0 p-5">
+              <IdentityEditor />
+            </TabsContent>
 
-          <TabsContent value="routine" className="m-0 p-5">
-            <RoutineEditor />
-          </TabsContent>
-        </ScrollArea>
+            <TabsContent value="routine" className="m-0 p-5">
+              <RoutineEditor />
+            </TabsContent>
+          </ScrollArea>
+        </div>
       </Tabs>
     </div>
   )

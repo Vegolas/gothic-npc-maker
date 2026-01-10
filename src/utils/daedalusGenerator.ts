@@ -4,7 +4,6 @@
  */
 
 import type { NPCConfig } from '../types/npc'
-import { getHeadTextureIndex } from '../data/textures'
 
 /**
  * Map NPC type to Daedalus constant
@@ -63,9 +62,6 @@ export function generateDaedalusScript(config: NPCConfig): string {
     dailyRoutine,
   } = config
 
-  // Get actual head texture index (female textures start at different offset)
-  const actualHeadTexture = getHeadTextureIndex(headMesh, headTexture)
-
   // Generate routine entries
   const routineEntries = dailyRoutine.length > 0
     ? dailyRoutine.map(entry => {
@@ -100,7 +96,7 @@ instance ${instanceName} (Npc_Default)
 
     // Visuals
     Mdl_SetVisual(self, "${getVisualMDS(gender)}");
-    Mdl_SetVisualBody(self, "${bodyMesh}", ${bodyTexture}, ${skinColor}, "${headMesh}", ${actualHeadTexture}, ${teethTexture}, ${formatArmorInstance(armorInstance)});
+    Mdl_SetVisualBody(self, "${bodyMesh}", ${bodyTexture}, ${skinColor}, "${headMesh}", ${headTexture}, ${teethTexture}, ${formatArmorInstance(armorInstance)});
 
     // Body configuration
     B_Scale(self);
@@ -134,9 +130,7 @@ ${routineEntries}
  * Useful for quick reference
  */
 export function generateVisualBodyLine(config: NPCConfig): string {
-  const actualHeadTexture = getHeadTextureIndex(config.headMesh, config.headTexture)
-
-  return `Mdl_SetVisualBody(self, "${config.bodyMesh}", ${config.bodyTexture}, ${config.skinColor}, "${config.headMesh}", ${actualHeadTexture}, ${config.teethTexture}, ${formatArmorInstance(config.armorInstance)});`
+  return `Mdl_SetVisualBody(self, "${config.bodyMesh}", ${config.bodyTexture}, ${config.skinColor}, "${config.headMesh}", ${config.headTexture}, ${config.teethTexture}, ${formatArmorInstance(config.armorInstance)});`
 }
 
 /**

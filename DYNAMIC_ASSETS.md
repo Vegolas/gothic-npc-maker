@@ -18,15 +18,36 @@ Example:
 **Location:** `/public/assets/{g1|g2}/{male|female}/textures/{body|head}/`
 
 **Naming convention:** `BASENAME_Vx_Cy.{png|PNG|tga|TGA}`
-- `x` = variant number (0-N)
-- `y` = skin color number (0-N)
+- `x` = variant number (0-N) - **absolute variant number** from the texture files
+- `y` = skin color number (0-2, typically)
+
+**Important Notes:**
+- **Male head textures:** Use V0-V136 (e.g., `HUM_HEAD_V0_C0.png`)
+- **Female head textures:** Use V137+ (e.g., `HUM_HEAD_V137_C0.png`)
+- The variant number is extracted directly from the filename - no offset calculation needed
+- **Body textures can have multiple base names** for the same body mesh
+
+**Body Texture Base Names:**
+Male bodies support multiple texture base names (defined in `src/data/textures.ts`):
+- `HUM_BODY_NAKED_V0_C0.png` - Standard naked body texture
+- `HUM_BODY_COOKSMITH_V0_C0.png` - Alternative cooksmith texture
+
+When selecting a body variant and skin color, the app will try loading textures from all configured base names in sequence until one succeeds.
 
 Example:
 ```
 /public/assets/g1/male/textures/body/HUM_BODY_NAKED_V0_C0.PNG
 /public/assets/g1/male/textures/body/HUM_BODY_NAKED_V0_C1.PNG
-/public/assets/g1/male/textures/body/HUM_BODY_NAKED_V1_C0.PNG
+/public/assets/g1/male/textures/body/HUM_BODY_COOKSMITH_V0_C0.PNG
+/public/assets/g1/male/textures/head/HUM_HEAD_V0_C0.PNG
+/public/assets/g1/female/textures/head/HUM_HEAD_V137_C0.PNG
 ```
+
+**G1 Female Special Case:**
+- G1 female uses **file-based texture selection** instead of variant-based
+- No skin color selector (textures are picked directly by filename)
+- No armor support
+- All available texture files are discovered and presented as a slider
 
 ### Guilds
 **Location:** `/public/assets/{g1|g2}/data/guilds.txt`
@@ -72,20 +93,22 @@ Example:
 ```
 
 ### Scenes
-**Location:** `/public/assets/{g1|g2}/scenes/`
+**Location:** `/public/assets/scenes/`
 
 Just drop GLB scene files. The filename (without extension) becomes the scene ID.
 
 Example:
 ```
-/public/assets/g1/scenes/oldcamp.glb  → Scene ID: "oldcamp"
-/public/assets/g1/scenes/newworld.glb → Scene ID: "newworld"
+/public/assets/scenes/oldcamp.glb  → Scene ID: "oldcamp"
+/public/assets/scenes/newworld.glb → Scene ID: "newworld"
 ```
+
+**Note:** Scenes are game-version independent and shared across G1/G2.
 
 ### ZEN World Files
 **Location:** `/public/assets/{g1|g2}/worlds/`
 
-Drop uncompiled (ASCII) `.ZEN` files. The app will parse waypoints from them.
+Drop uncompiled (ASCII) `.ZEN` files. The app will parse waypoints from them for autocomplete in the daily routine editor.
 
 Example:
 ```
@@ -93,7 +116,30 @@ Example:
 /public/assets/g2/worlds/NEWWORLD.ZEN
 ```
 
-**Note:** Only uncompiled (text-based) ZEN files are supported. Binary ZEN files will show an error.
+**Note:** Only uncompiled (text-based) ZEN files are supported. Binary ZEN files cannot be parsed.
+
+## Texture Loading System
+
+The app uses a multi-path texture loading system:
+
+1. **Discovery:** `src/utils/assetDiscovery.ts` scans texture files using `import.meta.glob`
+2. **Path Resolution:** `src/utils/assetPaths.ts` returns all possible texture paths for a given variant/skin color
+3. **Sequential Loading:** `src/utils/textureLoader.ts` tries each path until one succeeds
+4. **Fallback:** If no texture loads, a placeholder color is shown
+
+**Configuration:**
+Body texture base names are configured in `src/data/textures.ts`:
+```typescript
+export const BODY_TEXTURES: Record<string, BodyTextureConfig> = {
+  'hum_body_Naked0': {
+    gender: 'male',
+    baseFileName: ['HUM_BODY_NAKED', 'HUM_BODY_COOKSMITH'],
+    variantCount: 5,
+    skinColorCount: 3,
+  },
+  // ...
+}
+```
 
 ## After Adding Files
 
@@ -104,3 +150,9 @@ For development, restart the dev server (`npm run dev`) after adding new files.
 ## Showing Friendly Names
 
 All selects now show the raw IDs/filenames (e.g., "GIL_PAL", "FAI_HUMAN_STRONG"). This is intentional for a developer-focused tool. If you want friendly names, edit the component to add a mapping function.
+
+## Known Limitations
+
+1. **Head texture variants are absolute:** No relative-to-absolute conversion happens. Female head textures must use V137+ in filenames.
+2. **G1 Female restrictions:** No armor support, file-based texture selection only.
+3. **Build-time discovery:** New assets require rebuild/dev server restart to be detected.

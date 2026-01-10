@@ -20,11 +20,6 @@ export function ArmorSelector() {
   const armorInstance = useNPCStore((state) => state.config.armorInstance)
   const setArmorInstance = useNPCStore((state) => state.setArmorInstance)
 
-  // Hide armor selector for G1 Female (armors don't work)
-  if (gameVersion === 'g1' && gender === 'female') {
-    return null
-  }
-
   const armors = discoverArmors(gameVersion)
 
   // Queue thumbnail generation for all armors
@@ -33,6 +28,11 @@ export function ArmorSelector() {
       queueArmorThumbnail(armor.id, armor.path, gameVersion)
     })
   }, [armors, gameVersion])
+
+  // Hide armor selector for G1 Female (armors don't work) - moved after hooks
+  if (gameVersion === 'g1' && gender === 'female') {
+    return null
+  }
 
   return (
     <div className="space-y-2">

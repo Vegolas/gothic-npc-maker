@@ -215,12 +215,7 @@ export function discoverBodyVariantsForSkinColor(
         info.gender === gender &&
         info.category === 'body' &&
         info.skinColor === skinColor) {
-      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
-      const textureBase = info.baseName.replace(/_/g, '_')
-      
-      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
-        variants.add(info.variant)
-      }
+      variants.add(info.variant)
     }
   }
   
@@ -350,7 +345,6 @@ export function findBodyTextures(
 ): string[] {
   const matchingTextures: string[] = []
   
-  // Try to find all matching textures
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseTexturePath(path)
     if (info &&
@@ -359,18 +353,11 @@ export function findBodyTextures(
         info.category === 'body' &&
         info.variant === variant &&
         info.skinColor === skinColor) {
-      // Check if this texture matches the body
-      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
-      const textureBase = info.baseName.replace(/_/g, '_')
-      
-      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
-        matchingTextures.push(path.replace('/public', ''))
-      }
+      matchingTextures.push(path.replace('/public', ''))
     }
   }
   
-  // Sort to ensure consistent ordering (HUM_BODY_COOKSMITH before HUM_BODY_NAKED)
-  return matchingTextures.sort()
+  return matchingTextures
 }
 
 /**

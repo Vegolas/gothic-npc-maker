@@ -24,11 +24,8 @@ export function TextureSelector() {
   // G1 Female uses file-based selection
   const isG1Female = gameVersion === 'g1' && gender === 'female'
 
-  if (isG1Female) {
-    return <G1FemaleTextureSelector />
-  }
-
-  return <StandardTextureSelector />
+  // Render appropriate selector (no early return to avoid hooks issues)
+  return isG1Female ? <G1FemaleTextureSelector /> : <StandardTextureSelector />
 }
 
 /**
@@ -301,7 +298,7 @@ function CardBasedSelector({
           <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
             Skin Color
           </label>
-          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+          <div className="grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1 rounded">
             {availableSkinColors.map((color) => (
               <SkinColorCard
                 key={color}
@@ -324,7 +321,7 @@ function CardBasedSelector({
           <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
             Body Variant
           </label>
-          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+          <div className="grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1 rounded">
             {availableBodyVariants.map((variant) => (
               <BodyVariantCard
                 key={variant}
@@ -347,7 +344,7 @@ function CardBasedSelector({
           <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
             Head Variant
           </label>
-          <div className="grid grid-cols-8 gap-0.5 max-h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1">
+          <div className="grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1 rounded">
             {availableHeadVariants.map((variant) => (
               <HeadVariantCard
                 key={variant}
@@ -568,7 +565,11 @@ function HeadVariantCard({
 
 // Keep these exports for backward compatibility
 export function BodyTextureSelector() {
-  return <TextureSelector />
+  const gender = useNPCStore((state) => state.config.gender)
+  const gameVersion = useNPCStore((state) => state.config.gameVersion)
+  
+  // Key forces remount when gender/gameVersion changes to avoid stale state
+  return <TextureSelector key={`${gameVersion}-${gender}`} />
 }
 
 export function HeadTextureSelector() {
