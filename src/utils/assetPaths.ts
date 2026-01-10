@@ -4,7 +4,7 @@
  */
 
 import type { Gender, GameVersion } from '../types/npc'
-import { discoverBodies, discoverHeads, discoverArmors, findBodyTexture, findHeadTexture } from './assetDiscovery'
+import { discoverBodies, discoverHeads, discoverArmors, findBodyTexture, findBodyTextures, findHeadTexture } from './assetDiscovery'
 
 // Base path for all assets
 const ASSETS_BASE = '/assets'
@@ -73,6 +73,27 @@ export function getBodyTexturePath(
   // Fallback: try to construct path (for backward compatibility)
   console.warn(`Body texture not found for ${meshId} V${variant} C${skinColor}, using fallback`)
   return ''
+}
+
+/**
+ * Get all possible paths to body texture files (for trying multiple base names)
+ */
+export function getBodyTexturePaths(
+  meshId: string,
+  variant: number,
+  skinColor: number,
+  gender: Gender,
+  gameVersion: GameVersion
+): string[] {
+  const texturePaths = findBodyTextures(meshId, variant, skinColor, gameVersion, gender)
+  
+  if (texturePaths.length > 0) {
+    return texturePaths
+  }
+  
+  // Fallback: empty array
+  console.warn(`No body textures found for ${meshId} V${variant} C${skinColor}`)
+  return []
 }
 
 /**

@@ -51,6 +51,37 @@ export function loadTextureAsync(
   })
 }
 
+/**
+ * Load a texture from multiple possible paths
+ * Tries each path in sequence until one succeeds
+ */
+export function loadTextureFromPaths(
+  paths: string[],
+  onLoad: (texture: Texture | null) => void
+): void {
+  if (paths.length === 0) {
+    onLoad(null)
+    return
+  }
+
+  const tryPath = (index: number) => {
+    if (index >= paths.length) {
+      onLoad(null)
+      return
+    }
+
+    loadTextureAsync(paths[index], (texture) => {
+      if (texture) {
+        onLoad(texture)
+      } else {
+        tryPath(index + 1)
+      }
+    })
+  }
+
+  tryPath(0)
+}
+
 function tryStandardExtensions(
   basePath: string,
   extensions: string[],

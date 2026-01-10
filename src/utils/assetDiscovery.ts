@@ -338,16 +338,19 @@ export function discoverHeadTextureVariants(
 }
 
 /**
- * Find the actual texture file that exists for a body
+ * Find all matching texture files for a body
+ * Returns array of all possible texture paths to try
  */
-export function findBodyTexture(
+export function findBodyTextures(
   bodyId: string,
   variant: number,
   skinColor: number,
   gameVersion: GameVersion,
   gender: Gender
-): string | null {
-  // Try to find exact match first
+): string[] {
+  const matchingTextures: string[] = []
+  
+  // Try to find all matching textures
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseTexturePath(path)
     if (info &&
@@ -361,12 +364,28 @@ export function findBodyTexture(
       const textureBase = info.baseName.replace(/_/g, '_')
       
       if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
-        return path.replace('/public', '')
+        matchingTextures.push(path.replace('/public', ''))
       }
     }
   }
   
-  return null
+  // Sort to ensure consistent ordering (HUM_BODY_COOKSMITH before HUM_BODY_NAKED)
+  return matchingTextures.sort()
+}
+
+/**
+ * Find the actual texture file that exists for a body
+ * Returns the first matching texture from possible base names
+ */
+export function findBodyTexture(
+  bodyId: string,
+  variant: number,
+  skinColor: number,
+  gameVersion: GameVersion,
+  gender: Gender
+): string | null {
+  const textures = findBodyTextures(bodyId, variant, skinColor, gameVersion, gender)
+  return textures[0] || null
 }
 
 /**

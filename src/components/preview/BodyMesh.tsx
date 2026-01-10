@@ -2,8 +2,8 @@ import { useGLTF } from '@react-three/drei'
 import { type Mesh, MeshBasicMaterial } from 'three'
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import type { Gender, GameVersion } from '../../types/npc'
-import { getBodyMeshPath, getBodyTexturePath } from '../../utils/assetPaths'
-import { loadTextureAsync } from '../../utils/textureLoader'
+import { getBodyMeshPath, getBodyTexturePaths } from '../../utils/assetPaths'
+import { loadTextureFromPaths } from '../../utils/textureLoader'
 import { ModelErrorBoundary } from './ErrorBoundary'
 
 interface BodyMeshProps {
@@ -34,9 +34,9 @@ export function BodyMesh({
 
   // For non-G1-female, ignore textureFile and always use variant/skinColor
   const isG1Female = gameVersion === 'g1' && gender === 'female'
-  const texturePath = (isG1Female && textureFile)
-    ? `/assets/${gameVersion}/${gender}/textures/body/${textureFile}`
-    : getBodyTexturePath(meshId, textureVariant, skinColor, gender, gameVersion)
+  const texturePaths = (isG1Female && textureFile)
+    ? [`/assets/${gameVersion}/${gender}/textures/body/${textureFile}`]
+    : getBodyTexturePaths(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {
     return <PlaceholderBody fatness={fatness} />
@@ -47,7 +47,7 @@ export function BodyMesh({
       <Suspense fallback={<PlaceholderBody fatness={fatness} />}>
         <BodyMeshLoader
           modelPath={modelPath}
-          texturePath={texturePath}
+          texturePaths={texturePaths}
           fatness={fatness}
         />
       </Suspense>
@@ -57,11 +57,11 @@ export function BodyMesh({
 
 interface BodyMeshLoaderProps {
   modelPath: string
-  texturePath: string
+  texturePaths: string[]
   fatness: number
 }
 
-function BodyMeshLoader({ modelPath, texturePath, fatness }: BodyMeshLoaderProps) {
+function BodyMeshLoader({ modelPath, texturePaths, fatness }: BodyMeshLoaderProps) {
   const { scene } = useGLTF(modelPath, true)
 
   // Try to load texture (supports PNG, TGA, JPG)
@@ -69,14 +69,21 @@ function BodyMeshLoader({ modelPath, texturePath, fatness }: BodyMeshLoaderProps
 
   useEffect(() => {
     setTexture(null) // Reset while loading new texture
-    loadTextureAsync(texturePath, (loadedTexture) => {
+    
+    if (texturePaths.length === 0) {
+      setTexture(null)
+      return
+    }
+    
+    // Try loading textures from all possible paths
+    loadTextureFromPaths(texturePaths, (loadedTexture) => {
       if (loadedTexture && loadedTexture.image) {
         setTexture(loadedTexture)
       } else {
         setTexture(null)
       }
     })
-  }, [texturePath])
+  }, [texturePaths.join(',')])
 
   // Clone scene to avoid modifying the cached original
   const clonedScene = useMemo(() => {

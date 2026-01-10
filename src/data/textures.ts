@@ -12,7 +12,7 @@ import type { Gender } from '../types/npc'
  */
 export interface BodyTextureConfig {
   gender: Gender
-  baseFileName: string      // Base name without variant (e.g., "HUM_BODY_NAKED")
+  baseFileName: string[]    // Base names without variant (e.g., ["HUM_BODY_NAKED", "HUM_BODY_COOKSMITH"])
   variantCount: number      // Number of V variants
   skinColorCount: number    // Number of C variants (typically 3: light, medium, dark)
 }
@@ -20,13 +20,13 @@ export interface BodyTextureConfig {
 export const BODY_TEXTURES: Record<string, BodyTextureConfig> = {
   'hum_body_Naked0': {
     gender: 'male',
-    baseFileName: 'HUM_BODY_NAKED',
+    baseFileName: ['HUM_BODY_NAKED', 'HUM_BODY_COOKSMITH'],
     variantCount: 5,
     skinColorCount: 3,
   },
   'hum_body_Babe0': {
     gender: 'female',
-    baseFileName: 'HUM_BODY_NAKED',  // Female uses same base with different V numbers
+    baseFileName: ['HUM_BODY_NAKED'],  // Female uses same base with different V numbers
     variantCount: 5,
     skinColorCount: 3,
   },
@@ -102,13 +102,13 @@ export function getBodyTextureFileName(
   bodyMesh: string,
   variant: number,
   skinColor: number
-): string {
+): string[] {
   const config = BODY_TEXTURES[bodyMesh]
   if (!config) {
     // Fallback for unknown bodies (no extension - loader will try multiple)
-    return `HUM_BODY_NAKED_V${variant}_C${skinColor}`
+    return [`HUM_BODY_NAKED_V${variant}_C${skinColor}`]
   }
-  return `${config.baseFileName}_V${variant}_C${skinColor}`
+  return config.baseFileName.map(base => `${base}_V${variant}_C${skinColor}`)
 }
 
 /**

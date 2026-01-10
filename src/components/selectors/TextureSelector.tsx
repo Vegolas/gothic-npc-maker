@@ -386,7 +386,8 @@ function SkinColorCard({
   gameVersion,
   gender,
 }: SkinColorCardProps) {
-  const texturePath = getBodyTexturePath(bodyMesh, bodyVariant, colorIndex, gender, gameVersion)
+  // Always use variant 0 for consistent skin color preview
+  const texturePath = getBodyTexturePath(bodyMesh, 0, colorIndex, gender, gameVersion)
 
   return (
     <button
@@ -408,7 +409,6 @@ function SkinColorCard({
             alt={`Skin C${colorIndex}`}
             className="w-full h-full object-cover"
             draggable={false}
-            style={{ imageRendering: 'pixelated' }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -475,7 +475,6 @@ function BodyVariantCard({
             alt={`Body V${variant}`}
             className="w-full h-full object-cover"
             draggable={false}
-            style={{ imageRendering: 'pixelated' }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -542,7 +541,6 @@ function HeadVariantCard({
             alt={`Head V${variant}`}
             className="w-full h-full object-cover"
             draggable={false}
-            style={{ imageRendering: 'pixelated' }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
