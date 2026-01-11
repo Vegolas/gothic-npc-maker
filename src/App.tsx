@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { MainPanel } from './components/layout/MainPanel'
 import { BottomPanel } from './components/layout/BottomPanel'
-import { ExportPanel } from './components/ExportPanel'
 import { GameSelector } from './components/selectors'
 import { ThumbnailRenderer } from './components/preview/ThumbnailRenderer'
 import { Flame, Sword } from 'lucide-react'
@@ -83,10 +82,6 @@ function App() {
             <Flame className="w-4 h-4 text-ember/60" />
           </div>
 
-          {/* Right - Export Actions */}
-          <div className="flex items-center gap-4">
-            <ExportPanel />
-          </div>
         </div>
       </header>
 

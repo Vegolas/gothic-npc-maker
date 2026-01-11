@@ -4,7 +4,8 @@ import { useGLTF } from '@react-three/drei'
 import {
   useThumbnailStore,
   getHeadThumbnailKey,
-  getArmorThumbnailKey
+  getArmorThumbnailKey,
+  getBodyThumbnailKey
 } from '../../stores/thumbnailStore'
 import { getHeadTexturePath } from '../../utils/assetPaths'
 import { loadTextureAsync } from '../../utils/textureLoader'
@@ -12,7 +13,7 @@ import { MeshBasicMaterial, type Mesh, type Texture, type WebGLRenderer } from '
 import type { GameVersion, Gender } from '../../types/npc'
 
 interface RenderJob {
-  type: 'head' | 'armor'
+  type: 'head' | 'armor' | 'body'
   key: string
   modelPath: string
   // Head-specific
@@ -21,6 +22,8 @@ interface RenderJob {
   skinColor?: number
   gender?: Gender
   gameVersion?: GameVersion
+  // Body-specific
+  bodyId?: string
 }
 
 // Global render queue and listeners
@@ -103,6 +106,41 @@ export function queueArmorThumbnail(
     type: 'armor',
     key,
     modelPath,
+  })
+
+  notifyQueueChange()
+}
+
+/**
+ * Add a body thumbnail job to the render queue
+ */
+export function queueBodyThumbnail(
+  bodyId: string,
+  modelPath: string,
+  gameVersion: GameVersion,
+  gender: Gender
+): void {
+  const key = getBodyThumbnailKey(bodyId, gameVersion, gender)
+  const store = useThumbnailStore.getState()
+
+  // Skip if already cached or pending
+  if (store.hasThumbnail(key) || store.isPending(key)) {
+    return
+  }
+
+  // Check if already in queue
+  if (renderQueue.some(job => job.key === key)) {
+    return
+  }
+
+  store.setPending(key, true)
+  renderQueue.push({
+    type: 'body',
+    key,
+    modelPath,
+    bodyId,
+    gameVersion,
+    gender,
   })
 
   notifyQueueChange()
@@ -220,12 +258,21 @@ export function ThumbnailRenderer() {
         camera={
           currentJob.type === 'head'
             ? { position: [0, 0.18, 0.75], fov: 45 }
+            : currentJob.type === 'body'
+            ? { position: [0, 0.9, 2.2], fov: 45 }
             : { position: [0, 0.9, 2.5], fov: 45 }
         }
       >
         <ambientLight intensity={1} color="#b3d9ff" />
         {currentJob.type === 'head' ? (
           <HeadThumbnailScene
+            key={currentJob.key}
+            job={currentJob}
+            onComplete={handleComplete}
+            onError={handleError}
+          />
+        ) : currentJob.type === 'body' ? (
+          <BodyThumbnailScene
             key={currentJob.key}
             job={currentJob}
             onComplete={handleComplete}
@@ -394,6 +441,74 @@ function ArmorThumbnailScene({ job, onComplete, onError }: ThumbnailSceneProps) 
 
   return (
     <group rotation={[0.1, -Math.PI / 4, 0]} position={[0, -0.6, 0]}>
+      <primitive object={clonedScene} />
+    </group>
+  )
+}
+
+function BodyThumbnailScene({ job, onComplete, onError }: ThumbnailSceneProps) {
+  const { gl, scene, camera } = useThree()
+  const frameCount = useRef(0)
+  const captured = useRef(false)
+
+  // Load model
+  let gltfScene: THREE.Group | null = null
+  try {
+    const gltf = useGLTF(job.modelPath, true)
+    gltfScene = gltf.scene
+  } catch {
+    useEffect(() => {
+      onError()
+    }, [onError])
+    return null
+  }
+
+  // Clone and setup scene
+  const clonedScene = gltfScene?.clone(true)
+
+  useEffect(() => {
+    if (!clonedScene) return
+
+    clonedScene.traverse((child) => {
+      if ((child as Mesh).isMesh) {
+        const mesh = child as Mesh
+        const oldMaterial = mesh.material as MeshBasicMaterial
+
+        if (oldMaterial.map) {
+          mesh.material = new MeshBasicMaterial({ map: oldMaterial.map })
+        } else if (oldMaterial.color) {
+          mesh.material = new MeshBasicMaterial({ color: oldMaterial.color })
+        } else {
+          mesh.material = new MeshBasicMaterial({ color: '#d4a574' })
+        }
+      }
+    })
+  }, [clonedScene])
+
+  // Capture after render
+  useFrame(() => {
+    if (captured.current) return
+
+    frameCount.current++
+    // Wait a few frames for everything to settle
+    if (frameCount.current < 3) return
+
+    captured.current = true
+
+    try {
+      gl.render(scene, camera)
+      const dataUrl = (gl as WebGLRenderer).domElement.toDataURL('image/png')
+      onComplete(dataUrl)
+    } catch (err) {
+      console.error('Failed to capture body thumbnail:', err)
+      onError()
+    }
+  })
+
+  if (!clonedScene) return null
+
+  return (
+    <group rotation={[0.1, -Math.PI / 4, 0]} position={[0, -0.5, 0]}>
       <primitive object={clonedScene} />
     </group>
   )

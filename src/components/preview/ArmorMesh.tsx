@@ -3,6 +3,7 @@ import { type Mesh, MeshBasicMaterial, Texture } from 'three'
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import type { GameVersion, Gender } from '../../types/npc'
 import { getArmorMeshPath, getBodyTexturePath } from '../../utils/assetPaths'
+import { getBodyDirectory } from '../../utils/assetDiscovery'
 import { loadTextureAsync } from '../../utils/textureLoader'
 import { ModelErrorBoundary } from './ErrorBoundary'
 
@@ -22,9 +23,9 @@ interface ArmorMeshProps {
  * Renders armor overlay on top of the body
  * Returns null if armor doesn't exist (no error)
  */
-export function ArmorMesh({ 
-  armorId, 
-  gameVersion, 
+export function ArmorMesh({
+  armorId,
+  gameVersion,
   fatness,
   bodyMesh,
   bodyTextureVariant,
@@ -35,8 +36,11 @@ export function ArmorMesh({
   const modelPath = getArmorMeshPath(armorId, gameVersion)
 
   // Get body texture path (same logic as BodyMesh)
-  const bodyTexturePath = bodyTextureFile
-    ? `/assets/${gameVersion}/${gender}/textures/body/${bodyTextureFile}`
+  // Only use bodyTextureFile for G1 Female mode, otherwise use variant/skinColor
+  const isG1Female = gameVersion === 'g1' && gender === 'female'
+  const bodyDirectory = getBodyDirectory(bodyMesh, gameVersion, gender)
+  const bodyTexturePath = (isG1Female && bodyTextureFile && bodyDirectory)
+    ? `/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${bodyTextureFile}`
     : getBodyTexturePath(bodyMesh, bodyTextureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {

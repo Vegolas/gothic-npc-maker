@@ -11,17 +11,18 @@ const ASSETS_BASE = '/assets'
 
 /**
  * Get the path to a body mesh file
+ * New structure: /assets/{version}/{gender}/bodies/{directory}/{mesh}.glb
  */
 export function getBodyMeshPath(meshId: string, gender: Gender, gameVersion: GameVersion): string {
   const bodies = discoverBodies(gameVersion, gender)
   const body = bodies.find(b => b.id === meshId)
-  
+
   if (!body) {
     console.warn(`Body mesh not found: ${meshId}`)
     return ''
   }
-  
-  return `${ASSETS_BASE}/${gameVersion}/${gender}/bodies/${body.fileName}`
+
+  return `${ASSETS_BASE}/${gameVersion}/${gender}/bodies/${body.directory}/${body.fileName}`
 }
 
 /**

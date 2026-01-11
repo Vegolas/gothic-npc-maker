@@ -128,8 +128,8 @@ function HeadCard({
 
       {/* Label overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker via-obsidian-darker/90 to-transparent p-0.5 pt-3">
-        <p className="text-[12px] font-medium text-text-primary truncate text-center leading-tight">
-          {name.replace('HUM HEAD ', '').substring(0, 6)}
+        <p className="text-[10px] font-medium text-text-primary text-center leading-tight break-words">
+          {name.replace('HUM HEAD ', '')}
         </p>
       </div>
 

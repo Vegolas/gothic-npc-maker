@@ -51,14 +51,33 @@ Assets (3D models and textures) are **dynamically discovered at build time** usi
 
 - No hardcoded asset lists - models and textures are auto-detected from the filesystem
 - Assets must follow naming conventions:
-  - Models: `/public/assets/{g1|g2}/{male|female}/{bodies|heads|armors}/FILENAME.glb`
-  - Textures: `/public/assets/{g1|g2}/{male|female}/textures/{body|head}/BASENAME_Vx_Cy.{png|PNG|tga|TGA}`
-  - Scenes: `/public/assets/scenes/FILENAME.glb` (game-version independent)
 
-**Adding new assets:**
-1. Place GLB model in appropriate folder
-2. Place textures with `_Vx_Cy` suffix (variant + skin color)
-3. Rebuild or restart dev server - assets are discovered on build automatically
+**Body Assets (directory-based):**
+```
+/public/assets/{g1|g2}/{male|female}/bodies/{DIRECTORY}/
+  ├── {MESH_NAME}.glb       # One or more mesh files
+  ├── V0_C0.png             # Variant 0, Skin Color 0
+  ├── V0_C1.png             # Variant 0, Skin Color 1
+  ├── V1_C0.png             # Variant 1, Skin Color 0
+  └── ...
+```
+- Each body type has its own directory containing mesh(es) and textures
+- Multiple meshes can share the same directory/textures
+- Textures use simple `V{variant}_C{skinColor}` naming
+
+**Head Assets (unchanged):**
+- Models: `/public/assets/{g1|g2}/{male|female}/heads/{MESH}.glb`
+- Textures: `/public/assets/{g1|g2}/{male|female}/textures/head/{BASENAME}_V{x}_C{y}.png`
+
+**Other Assets:**
+- Armors: `/public/assets/{g1|g2}/armors/{ARMOR}.glb`
+- Scenes: `/public/assets/scenes/{SCENE}.glb`
+
+**Adding new body assets:**
+1. Create a directory under `/public/assets/{version}/{gender}/bodies/`
+2. Place GLB mesh file(s) in that directory
+3. Place textures as `V{variant}_C{skinColor}.png` in the same directory
+4. Rebuild or restart dev server - assets are discovered on build automatically
 
 ### Texture System (Hybrid)
 
@@ -157,8 +176,8 @@ Assets are stored separately: `/public/assets/g1/` and `/public/assets/g2/`
 ### Asset File Formats
 
 - **Models**: GLB format (converted from Gothic's ASC format)
-- **Textures**: PNG/TGA with naming pattern `BASENAME_V{variant}_C{skinColor}.png`
-  - Multiple base names supported per body mesh
+- **Body Textures**: PNG/TGA with naming pattern `V{variant}_C{skinColor}.png` (in body directory)
+- **Head Textures**: PNG/TGA with naming pattern `{BASENAME}_V{variant}_C{skinColor}.png`
   - Head textures use absolute variant numbers (0-136 male, 137+ female)
 
 ### Daedalus Script Structure

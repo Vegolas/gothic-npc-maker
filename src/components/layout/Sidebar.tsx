@@ -1,7 +1,11 @@
 import { HeadOffsetSlider, SceneSelector } from '../selectors'
 import { ScrollArea } from '../ui/scroll-area'
-import { Settings, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { Settings, ChevronLeft, ChevronRight, Download, Upload, RotateCcw, FileCode, FileJson, Trash2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { useNPCStore } from '../../stores/npcStore'
+import { useThumbnailStore } from '../../stores/thumbnailStore'
+import { useNPCConfigValue } from '../../hooks/useNPCConfig'
+import { downloadNPCScript, downloadNPCConfig, loadNPCConfigFromFile } from '../../utils/exportUtils'
 
 /**
  * Left sidebar containing app-specific settings that don't affect the game.
@@ -10,6 +14,23 @@ import { useState } from 'react'
  */
 export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const config = useNPCConfigValue()
+  const loadConfig = useNPCStore((state) => state.loadConfig)
+  const resetConfig = useNPCStore((state) => state.resetConfig)
+  const clearThumbnailCache = useThumbnailStore((state) => state.clearCache)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleLoadConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const loadedConfig = await loadNPCConfigFromFile(file)
+    if (loadedConfig) {
+      loadConfig(loadedConfig)
+    } else {
+      alert('Failed to load configuration file')
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   return (
     <aside 
@@ -82,6 +103,70 @@ export function Sidebar() {
                   Fine-tune head placement for preview only
                 </p>
                 <HeadOffsetSlider />
+              </div>
+
+              {/* Export/Import Section */}
+              <div className="pt-4 border-t border-stone/30">
+                <h3 className="text-xs font-display text-text-dim uppercase tracking-wider mb-3">
+                  Export / Import
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => downloadNPCScript(config)}
+                    className="w-full px-3 py-2 text-left text-sm text-text flex items-center gap-3 rounded-md hover:bg-stone/30 hover:text-ember transition-colors"
+                  >
+                    <FileCode className="w-4 h-4 text-text-dim" />
+                    Download Script (.d)
+                  </button>
+                  <button
+                    onClick={() => downloadNPCConfig(config)}
+                    className="w-full px-3 py-2 text-left text-sm text-text flex items-center gap-3 rounded-md hover:bg-stone/30 hover:text-ember transition-colors"
+                  >
+                    <FileJson className="w-4 h-4 text-text-dim" />
+                    Save Config (.json)
+                  </button>
+                  <label className="flex items-center gap-3 w-full px-3 py-2 text-left text-sm text-text rounded-md hover:bg-stone/30 hover:text-ember transition-colors cursor-pointer">
+                    <Upload className="w-4 h-4 text-text-dim" />
+                    Load Config...
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".json"
+                      onChange={handleLoadConfig}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Utilities Section */}
+              <div className="pt-4 border-t border-stone/30">
+                <h3 className="text-xs font-display text-text-dim uppercase tracking-wider mb-3">
+                  Utilities
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={async () => {
+                      await clearThumbnailCache()
+                      window.location.reload()
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm text-text flex items-center gap-3 rounded-md hover:bg-stone/30 hover:text-ember transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4 text-text-dim" />
+                    Clear Preview Cache
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Reset all settings to defaults?')) {
+                        resetConfig()
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-left text-sm text-blood flex items-center gap-3 rounded-md hover:bg-blood/10 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset to Defaults
+                  </button>
+                </div>
               </div>
             </div>
           </ScrollArea>

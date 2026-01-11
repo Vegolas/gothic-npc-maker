@@ -34,6 +34,18 @@ function formatArmorInstance(armor: string | null): string {
 }
 
 /**
+ * Format head mesh name with HUM_HEAD_ prefix
+ * Gothic requires head mesh names to have this prefix in scripts
+ */
+function formatHeadMesh(headMesh: string): string {
+  // If already has the prefix, return as-is
+  if (headMesh.toUpperCase().startsWith('HUM_HEAD_')) {
+    return headMesh
+  }
+  return `Hum_Head_${headMesh}`
+}
+
+/**
  * Generate complete Daedalus script for an NPC
  */
 export function generateDaedalusScript(config: NPCConfig): string {
@@ -96,7 +108,7 @@ instance ${instanceName} (Npc_Default)
 
     // Visuals
     Mdl_SetVisual(self, "${getVisualMDS(gender)}");
-    Mdl_SetVisualBody(self, "${bodyMesh}", ${bodyTexture}, ${skinColor}, "${headMesh}", ${headTexture}, ${teethTexture}, ${formatArmorInstance(armorInstance)});
+    Mdl_SetVisualBody(self, "${bodyMesh}", ${bodyTexture}, ${skinColor}, "${formatHeadMesh(headMesh)}", ${headTexture}, ${teethTexture}, ${formatArmorInstance(armorInstance)});
 
     // Body configuration
     B_Scale(self);
@@ -130,7 +142,7 @@ ${routineEntries}
  * Useful for quick reference
  */
 export function generateVisualBodyLine(config: NPCConfig): string {
-  return `Mdl_SetVisualBody(self, "${config.bodyMesh}", ${config.bodyTexture}, ${config.skinColor}, "${config.headMesh}", ${config.headTexture}, ${config.teethTexture}, ${formatArmorInstance(config.armorInstance)});`
+  return `Mdl_SetVisualBody(self, "${config.bodyMesh}", ${config.bodyTexture}, ${config.skinColor}, "${formatHeadMesh(config.headMesh)}", ${config.headTexture}, ${config.teethTexture}, ${formatArmorInstance(config.armorInstance)});`
 }
 
 /**

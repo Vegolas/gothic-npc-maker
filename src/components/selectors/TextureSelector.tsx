@@ -3,8 +3,7 @@ import { useNPCStore } from '../../stores/npcStore'
 import {
   discoverBodyTextureFiles,
   discoverHeadTextureFiles,
-  discoverAllSkinColors,
-  discoverBodyVariantsForSkinColor,
+  discoverBodyTextureVariants,
   discoverHeadVariantsForSkinColor,
 } from '../../utils/assetDiscovery'
 import { getBodyTexturePath, getHeadTexturePath } from '../../utils/assetPaths'
@@ -115,9 +114,10 @@ function StandardTextureSelector() {
   const setHeadTextureVariant = useNPCStore((state) => state.setHeadTexture)
   const setSkinColor = useNPCStore((state) => state.setSkinColor)
 
-  // Smart filtering approach: Skin Color → Body/Head Variants
-  const availableSkinColors = discoverAllSkinColors(gameVersion, gender)
-  const availableBodyVariants = discoverBodyVariantsForSkinColor(bodyMesh, skinColor, gameVersion, gender)
+  // Body-specific texture discovery - gets variants and skin colors for the selected body mesh
+  const bodyTextureInfo = discoverBodyTextureVariants(bodyMesh, gameVersion, gender)
+  const availableSkinColors = bodyTextureInfo.skinColors
+  const availableBodyVariants = bodyTextureInfo.variants
   const availableHeadVariants = discoverHeadVariantsForSkinColor(headMesh, skinColor, gameVersion, gender)
 
   // Auto-adjust if current selections are out of range
@@ -140,7 +140,7 @@ function StandardTextureSelector() {
   }, [availableHeadVariants, headTextureVariant, setHeadTextureVariant])
 
   if (availableSkinColors.length === 0) {
-    return <div className="text-xs text-text-muted">No textures found</div>
+    return <div className="text-xs text-text-muted">No textures found for {bodyMesh}</div>
   }
 
   const skinColorIndex = availableSkinColors.indexOf(skinColor)
@@ -306,7 +306,6 @@ function CardBasedSelector({
                 isSelected={skinColor === color}
                 onClick={() => setSkinColor(color)}
                 bodyMesh={bodyMesh}
-                bodyVariant={bodyTextureVariant}
                 gameVersion={gameVersion}
                 gender={gender}
               />
@@ -369,7 +368,6 @@ interface SkinColorCardProps {
   isSelected: boolean
   onClick: () => void
   bodyMesh: string
-  bodyVariant: number
   gameVersion: GameVersion
   gender: Gender
 }
@@ -379,7 +377,6 @@ function SkinColorCard({
   isSelected,
   onClick,
   bodyMesh,
-  bodyVariant,
   gameVersion,
   gender,
 }: SkinColorCardProps) {

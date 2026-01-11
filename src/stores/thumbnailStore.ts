@@ -104,6 +104,20 @@ class ThumbnailDB {
       request.onerror = () => resolve(map)
     })
   }
+
+  async clear(): Promise<void> {
+    await this.init()
+    if (!this.db) return
+
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction(STORE_NAME, 'readwrite')
+      const store = transaction.objectStore(STORE_NAME)
+      store.clear()
+
+      transaction.oncomplete = () => resolve()
+      transaction.onerror = () => resolve()
+    })
+  }
 }
 
 const thumbnailDB = new ThumbnailDB()
@@ -118,6 +132,7 @@ interface ThumbnailState {
   setPending: (key: string, pending: boolean) => void
   loadFromDB: () => Promise<void>
   hasThumbnail: (key: string) => boolean
+  clearCache: () => Promise<void>
 }
 
 /**
@@ -172,6 +187,11 @@ export const useThumbnailStore = create<ThumbnailState>((set, get) => ({
     const cached = await thumbnailDB.getAll()
     set({ thumbnails: cached, initialized: true })
   },
+
+  clearCache: async () => {
+    await thumbnailDB.clear()
+    set({ thumbnails: new Map(), pending: new Set() })
+  },
 }))
 
 // Initialize on load - load cached thumbnails from IndexedDB
@@ -211,4 +231,15 @@ export function getArmorThumbnailKey(
   gameVersion: string
 ): string {
   return `armor:${gameVersion}:${armorId}`
+}
+
+/**
+ * Generate a cache key for body thumbnails
+ */
+export function getBodyThumbnailKey(
+  bodyId: string,
+  gameVersion: string,
+  gender: string
+): string {
+  return `body:${gameVersion}:${gender}:${bodyId}`
 }

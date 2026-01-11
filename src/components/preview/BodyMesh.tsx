@@ -3,6 +3,7 @@ import { type Mesh, MeshBasicMaterial } from 'three'
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import type { Gender, GameVersion } from '../../types/npc'
 import { getBodyMeshPath, getBodyTexturePaths } from '../../utils/assetPaths'
+import { getBodyDirectory } from '../../utils/assetDiscovery'
 import { loadTextureFromPaths } from '../../utils/textureLoader'
 import { ModelErrorBoundary } from './ErrorBoundary'
 
@@ -34,8 +35,9 @@ export function BodyMesh({
 
   // For non-G1-female, ignore textureFile and always use variant/skinColor
   const isG1Female = gameVersion === 'g1' && gender === 'female'
-  const texturePaths = (isG1Female && textureFile)
-    ? [`/assets/${gameVersion}/${gender}/textures/body/${textureFile}`]
+  const bodyDirectory = getBodyDirectory(meshId, gameVersion, gender)
+  const texturePaths = (isG1Female && textureFile && bodyDirectory)
+    ? [`/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${textureFile}`]
     : getBodyTexturePaths(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {

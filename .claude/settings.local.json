@@ -15,7 +15,8 @@
       "Bash(timeout:*)",
       "Bash(npm run lint:*)",
       "Bash(dir /b \"E:\\\\git\\\\npc-maker\\\\public\\\\assets\"\")",
-      "Bash(dir /b \"E:\\\\git\\\\npc-maker\\\\public\\\\assets\\\\g1\\\\data\"\")"
+      "Bash(dir /b \"E:\\\\git\\\\npc-maker\\\\public\\\\assets\\\\g1\\\\data\"\")",
+      "Bash(dir:*)"
     ]
   }
 }

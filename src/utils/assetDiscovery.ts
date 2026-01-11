@@ -1,6 +1,16 @@
 /**
  * Dynamic asset discovery using Vite's import.meta.glob
  * Automatically discovers GLB files and textures in the assets directory
+ *
+ * Body Structure:
+ *   /assets/{g1|g2}/{male|female}/bodies/{DIRECTORY}/
+ *     - {MESH_NAME}.glb (one or more meshes sharing textures)
+ *     - *_V{variant}_C{skinColor}.{png|tga} (textures)
+ *   Textures are discovered by looking in the mesh's directory.
+ *
+ * Head Structure:
+ *   /assets/{g1|g2}/{male|female}/heads/{MESH}.glb
+ *   /assets/{g1|g2}/{male|female}/textures/head/{BASENAME}_V{x}_C{y}.png
  */
 
 import type { GameVersion, Gender } from '../types/npc'
@@ -24,54 +34,121 @@ const sceneFiles = import.meta.glob('/public/assets/**/scenes/*.glb', { eager: f
 const zenFiles = import.meta.glob('/public/assets/**/worlds/*.{zen,ZEN}', { eager: false, as: 'url' })
 
 /**
- * Extract file information from path
+ * Parse body mesh path (supports both old and new directory structures)
+ * New format: /public/assets/{g1|g2}/{male|female}/bodies/{DIRECTORY}/{MESH}.glb
+ * Old format: /public/assets/{g1|g2}/{male|female}/bodies/{MESH}.glb
  */
-function parseAssetPath(path: string): {
+function parseBodyPath(path: string): {
   gameVersion: GameVersion
   gender: Gender
-  category: 'bodies' | 'heads' | 'armors'
+  directory: string
   fileName: string
   id: string
 } | null {
-  // Path format: /public/assets/{g1|g2}/{male|female}/{bodies|heads|armors}/FILENAME.glb
-  const match = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/(bodies|heads|armors)\/(.+?)\.glb$/)
-  
+  // Try new format first: /bodies/{DIRECTORY}/{MESH}.glb
+  const newMatch = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/bodies\/([^/]+)\/([^/]+)\.glb$/)
+  if (newMatch) {
+    const [, gameVersion, gender, directory, meshName] = newMatch
+    return {
+      gameVersion: gameVersion as GameVersion,
+      gender: gender as Gender,
+      directory,
+      fileName: `${meshName}.glb`,
+      id: meshName
+    }
+  }
+
+  // Try old format: /bodies/{MESH}.glb (use mesh name as directory)
+  const oldMatch = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/bodies\/([^/]+)\.glb$/)
+  if (oldMatch) {
+    const [, gameVersion, gender, meshName] = oldMatch
+    return {
+      gameVersion: gameVersion as GameVersion,
+      gender: gender as Gender,
+      directory: meshName, // Use mesh name as directory for old format
+      fileName: `${meshName}.glb`,
+      id: meshName
+    }
+  }
+
+  return null
+}
+
+/**
+ * Parse body texture path - extracts variant/skinColor from textures in body directories
+ * Format: /public/assets/{g1|g2}/{male|female}/bodies/{DIRECTORY}/*_V{x}[_C{y}].{ext}
+ * The _C{y} part is optional (defaults to skinColor 0)
+ */
+function parseBodyTexturePath(path: string): {
+  gameVersion: GameVersion
+  gender: Gender
+  directory: string
+  variant: number
+  skinColor: number
+  fileName: string
+} | null {
+  // Match any texture in a body directory with _V{x} pattern (with optional _C{y})
+  const match = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/bodies\/([^/]+)\/(.+_V(\d+)(?:_C(\d+))?\.(png|PNG|tga|TGA|jpg|JPG))$/i)
+  if (match) {
+    const [, gameVersion, gender, directory, fileName, variant, skinColor] = match
+    return {
+      gameVersion: gameVersion as GameVersion,
+      gender: gender as Gender,
+      directory,
+      variant: parseInt(variant, 10),
+      skinColor: skinColor ? parseInt(skinColor, 10) : 0,
+      fileName
+    }
+  }
+
+  return null
+}
+
+/**
+ * Parse head mesh path (unchanged structure)
+ * Path format: /public/assets/{g1|g2}/{male|female}/heads/{MESH}.glb
+ */
+function parseHeadPath(path: string): {
+  gameVersion: GameVersion
+  gender: Gender
+  fileName: string
+  id: string
+} | null {
+  const match = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/heads\/([^/]+)\.glb$/)
+
   if (!match) return null
-  
-  const [, gameVersion, gender, category, fileName] = match
-  
+
+  const [, gameVersion, gender, meshName] = match
+
   return {
     gameVersion: gameVersion as GameVersion,
     gender: gender as Gender,
-    category: category as 'bodies' | 'heads' | 'armors',
-    fileName: `${fileName}.glb`,
-    id: fileName // Use filename without extension as ID
+    fileName: `${meshName}.glb`,
+    id: meshName
   }
 }
 
 /**
- * Parse texture path and extract metadata
+ * Parse head texture path (unchanged structure)
+ * Path format: /public/assets/{g1|g2}/{male|female}/textures/head/{BASENAME}_V{x}_C{y}.{ext}
  */
-function parseTexturePath(path: string): {
+function parseHeadTexturePath(path: string): {
   gameVersion: GameVersion
   gender: Gender
-  category: 'body' | 'head'
   baseName: string
   variant: number
   skinColor: number
   fileName: string
 } | null {
-  // Path format: /public/assets/{g1|g2}/{male|female}/textures/{body|head}/BASENAME_Vx_Cy.PNG
-  const match = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/textures\/(body|head)\/(.+?)_V(\d+)_C(\d+)\.(png|PNG|tga|TGA|jpg|JPG)$/i)
-  
+  const match = path.match(/\/public\/assets\/(g1|g2)\/(male|female)\/textures\/head\/(.+?)_V(\d+)_C(\d+)\.(png|PNG|tga|TGA|jpg|JPG)$/i)
+
   if (!match) return null
-  
-  const [, gameVersion, gender, category, baseName, variant, skinColor, ext] = match
-  
+
+  const [, gameVersion, gender, baseName, variant, skinColor, ext] = match
+
   return {
     gameVersion: gameVersion as GameVersion,
     gender: gender as Gender,
-    category: category as 'body' | 'head',
     baseName,
     variant: parseInt(variant, 10),
     skinColor: parseInt(skinColor, 10),
@@ -80,36 +157,60 @@ function parseTexturePath(path: string): {
 }
 
 /**
+ * Get the directory containing a body mesh
+ * Returns the parent directory name for a given body ID
+ */
+export function getBodyDirectory(
+  bodyId: string,
+  gameVersion: GameVersion,
+  gender: Gender
+): string | null {
+  for (const [path] of Object.entries(assetFiles)) {
+    const info = parseBodyPath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.id === bodyId) {
+      return info.directory
+    }
+  }
+  return null
+}
+
+
+/**
  * Discover bodies dynamically
+ * Now includes directory information for texture lookup
  */
 export function discoverBodies(gameVersion: GameVersion, gender: Gender): Array<{
   id: string
   name: string
   fileName: string
   path: string
+  directory: string
 }> {
-  const bodies: Array<{ id: string; name: string; fileName: string; path: string }> = []
-  
+  const bodies: Array<{ id: string; name: string; fileName: string; path: string; directory: string }> = []
+
   for (const [path] of Object.entries(assetFiles)) {
-    const info = parseAssetPath(path)
-    if (info && 
-        info.gameVersion === gameVersion && 
-        info.gender === gender && 
-        info.category === 'bodies') {
+    const info = parseBodyPath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender) {
       bodies.push({
         id: info.id,
-        name: info.id.replace(/_/g, ' '), // Convert HUM_BODY_NAKED0 to "HUM BODY NAKED0"
+        name: info.id.replace(/_/g, ' '),
         fileName: info.fileName,
-        path: path.replace('/public', '') // Convert to web path
+        path: path.replace('/public', ''),
+        directory: info.directory
       })
     }
   }
-  
+
   return bodies.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /**
- * Discover heads dynamically
+ * Discover heads dynamically (unchanged)
  */
 export function discoverHeads(gameVersion: GameVersion, gender: Gender): Array<{
   id: string
@@ -118,13 +219,12 @@ export function discoverHeads(gameVersion: GameVersion, gender: Gender): Array<{
   path: string
 }> {
   const heads: Array<{ id: string; name: string; fileName: string; path: string }> = []
-  
+
   for (const [path] of Object.entries(assetFiles)) {
-    const info = parseAssetPath(path)
-    if (info && 
-        info.gameVersion === gameVersion && 
-        info.gender === gender && 
-        info.category === 'heads') {
+    const info = parseHeadPath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender) {
       heads.push({
         id: info.id,
         name: info.id.replace(/_/g, ' '),
@@ -133,7 +233,7 @@ export function discoverHeads(gameVersion: GameVersion, gender: Gender): Array<{
       })
     }
   }
-  
+
   return heads.sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -149,12 +249,12 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
 }> {
   const armors: Array<{ id: string; name: string; fileName: string; path: string }> = []
   const armorPattern = `/public/assets/${gameVersion}/armors/`
-  
+
   for (const [path] of Object.entries(assetFiles)) {
     if (path.startsWith(armorPattern) && path.endsWith('.glb')) {
       const fileName = path.split('/').pop() || ''
       const id = fileName.replace('.glb', '')
-      
+
       armors.push({
         id,
         name: id.replace(/_/g, ' '),
@@ -163,63 +263,49 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
       })
     }
   }
-  
+
   return armors.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /**
- * Discover available skin colors for a specific body variant
+ * Discover available texture variants for a body mesh
+ * Looks in the body's directory for textures with _V{x}_C{y} pattern
  */
-export function discoverSkinColorsForBodyVariant(
+export function discoverBodyTextureVariants(
   bodyId: string,
-  variant: number,
   gameVersion: GameVersion,
   gender: Gender
-): number[] {
-  const skinColors = new Set<number>()
-  
-  for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
-    if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.category === 'body' &&
-        info.variant === variant) {
-      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
-      const textureBase = info.baseName.replace(/_/g, '_')
-      
-      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
-        skinColors.add(info.skinColor)
-      }
-    }
-  }
-  
-  return Array.from(skinColors).sort((a, b) => a - b)
-}
-
-/**
- * Discover available body variants for a specific skin color
- */
-export function discoverBodyVariantsForSkinColor(
-  bodyId: string,
-  skinColor: number,
-  gameVersion: GameVersion,
-  gender: Gender
-): number[] {
+): { variants: number[]; skinColors: number[]; directory: string | null } {
   const variants = new Set<number>()
-  
+  const skinColors = new Set<number>()
+
+  const directory = getBodyDirectory(bodyId, gameVersion, gender)
+  if (!directory) {
+    return { variants: [0], skinColors: [0], directory: null }
+  }
+
+  // Look for textures in the body's directory
   for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
+    const info = parseBodyTexturePath(path)
     if (info &&
         info.gameVersion === gameVersion &&
         info.gender === gender &&
-        info.category === 'body' &&
-        info.skinColor === skinColor) {
+        info.directory.toUpperCase() === directory.toUpperCase()) {
       variants.add(info.variant)
+      skinColors.add(info.skinColor)
     }
   }
-  
-  return Array.from(variants).sort((a, b) => a - b)
+
+  // If no textures found, return defaults
+  if (variants.size === 0) {
+    return { variants: [0], skinColors: [0], directory }
+  }
+
+  return {
+    variants: Array.from(variants).sort((a, b) => a - b),
+    skinColors: Array.from(skinColors).sort((a, b) => a - b),
+    directory
+  }
 }
 
 /**
@@ -232,75 +318,18 @@ export function discoverHeadVariantsForSkinColor(
   gender: Gender
 ): number[] {
   const variants = new Set<number>()
-  
+
   for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
+    const info = parseHeadTexturePath(path)
     if (info &&
         info.gameVersion === gameVersion &&
         info.gender === gender &&
-        info.category === 'head' &&
         info.skinColor === skinColor) {
       variants.add(info.variant)
     }
   }
-  
+
   return Array.from(variants).sort((a, b) => a - b)
-}
-
-/**
- * Get all available skin colors across all body and head textures
- */
-export function discoverAllSkinColors(
-  gameVersion: GameVersion,
-  gender: Gender
-): number[] {
-  const skinColors = new Set<number>()
-  
-  for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
-    if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender) {
-      skinColors.add(info.skinColor)
-    }
-  }
-  
-  return Array.from(skinColors).sort((a, b) => a - b)
-}
-
-/**
- * Discover available texture variants for a body mesh
- */
-export function discoverBodyTextureVariants(
-  bodyId: string,
-  gameVersion: GameVersion,
-  gender: Gender
-): { variants: number; skinColors: number } {
-  const variants = new Set<number>()
-  const skinColors = new Set<number>()
-  
-  for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
-    if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.category === 'body') {
-      // Match textures that could belong to this body
-      // Body ID might be "HUM_BODY_NAKED0" and texture is "HUM_BODY_NAKED"
-      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_')
-      const textureBase = info.baseName.replace(/_/g, '_')
-      
-      if (textureBase.includes(bodyBase) || bodyBase.includes(textureBase)) {
-        variants.add(info.variant)
-        skinColors.add(info.skinColor)
-      }
-    }
-  }
-  
-  return {
-    variants: variants.size > 0 ? Math.max(...variants) + 1 : 1,
-    skinColors: skinColors.size > 0 ? Math.max(...skinColors) + 1 : 1
-  }
 }
 
 /**
@@ -313,19 +342,17 @@ export function discoverHeadTextureVariants(
 ): { variants: number; skinColors: number } {
   const variants = new Set<number>()
   const skinColors = new Set<number>()
-  
+
   for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
+    const info = parseHeadTexturePath(path)
     if (info &&
         info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.category === 'head') {
-      // For heads, textures are usually generic (HUM_HEAD) or specific to the head
+        info.gender === gender) {
       variants.add(info.variant)
       skinColors.add(info.skinColor)
     }
   }
-  
+
   return {
     variants: variants.size > 0 ? Math.max(...variants) + 1 : 1,
     skinColors: skinColors.size > 0 ? Math.max(...skinColors) + 1 : 1
@@ -333,7 +360,38 @@ export function discoverHeadTextureVariants(
 }
 
 /**
- * Find all matching texture files for a body
+ * Find body texture file path
+ * Looks in the body's directory for matching variant/skinColor
+ */
+export function findBodyTexture(
+  bodyId: string,
+  variant: number,
+  skinColor: number,
+  gameVersion: GameVersion,
+  gender: Gender
+): string | null {
+  const directory = getBodyDirectory(bodyId, gameVersion, gender)
+  if (!directory) {
+    return null
+  }
+
+  for (const [path] of Object.entries(textureFiles)) {
+    const info = parseBodyTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.directory.toUpperCase() === directory.toUpperCase() &&
+        info.variant === variant &&
+        info.skinColor === skinColor) {
+      return path.replace('/public', '')
+    }
+  }
+
+  return null
+}
+
+/**
+ * Find all matching body texture files
  * Returns array of all possible texture paths to try
  */
 export function findBodyTextures(
@@ -344,35 +402,25 @@ export function findBodyTextures(
   gender: Gender
 ): string[] {
   const matchingTextures: string[] = []
-  
+  const directory = getBodyDirectory(bodyId, gameVersion, gender)
+
+  if (!directory) {
+    return matchingTextures
+  }
+
   for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
+    const info = parseBodyTexturePath(path)
     if (info &&
         info.gameVersion === gameVersion &&
         info.gender === gender &&
-        info.category === 'body' &&
+        info.directory.toUpperCase() === directory.toUpperCase() &&
         info.variant === variant &&
         info.skinColor === skinColor) {
       matchingTextures.push(path.replace('/public', ''))
     }
   }
-  
-  return matchingTextures
-}
 
-/**
- * Find the actual texture file that exists for a body
- * Returns the first matching texture from possible base names
- */
-export function findBodyTexture(
-  bodyId: string,
-  variant: number,
-  skinColor: number,
-  gameVersion: GameVersion,
-  gender: Gender
-): string | null {
-  const textures = findBodyTextures(bodyId, variant, skinColor, gameVersion, gender)
-  return textures[0] || null
+  return matchingTextures
 }
 
 /**
@@ -386,38 +434,22 @@ export function findHeadTexture(
   gender: Gender
 ): string | null {
   for (const [path] of Object.entries(textureFiles)) {
-    const info = parseTexturePath(path)
+    const info = parseHeadTexturePath(path)
     if (info &&
         info.gameVersion === gameVersion &&
         info.gender === gender &&
-        info.category === 'head' &&
         info.variant === variant &&
         info.skinColor === skinColor) {
       return path.replace('/public', '')
     }
   }
-  
+
   return null
 }
 
 /**
- * Check if a specific asset exists
- */
-export function assetExists(path: string): boolean {
-  const fullPath = `/public${path}`
-  return fullPath in assetFiles
-}
-
-/**
- * Get all discovered asset paths (for debugging)
- */
-export function getAllAssetPaths(): string[] {
-  return Object.keys(assetFiles).map(path => path.replace('/public', ''))
-}
-
-/**
  * Discover all texture files for a specific body mesh
- * Returns array of full texture filenames
+ * Returns array of full texture filenames (for G1 Female file-based selection)
  */
 export function discoverBodyTextureFiles(
   bodyId: string,
@@ -425,18 +457,19 @@ export function discoverBodyTextureFiles(
   gender: Gender
 ): string[] {
   const textures: string[] = []
-  const pattern = `/public/assets/${gameVersion}/${gender}/textures/body/`
+  const directory = getBodyDirectory(bodyId, gameVersion, gender)
+
+  if (!directory) {
+    return textures
+  }
 
   for (const [path] of Object.entries(textureFiles)) {
-    if (path.startsWith(pattern)) {
-      const fileName = path.split('/').pop() || ''
-      // Match textures that could belong to this body
-      const bodyBase = bodyId.replace(/\d+$/, '').replace(/_/g, '_').toUpperCase()
-      const fileNameUpper = fileName.toUpperCase()
-
-      if (fileNameUpper.includes(bodyBase) || bodyBase.includes(fileNameUpper.split('_')[0])) {
-        textures.push(fileName)
-      }
+    const info = parseBodyTexturePath(path)
+    if (info &&
+        info.gameVersion === gameVersion &&
+        info.gender === gender &&
+        info.directory.toUpperCase() === directory.toUpperCase()) {
+      textures.push(info.fileName)
     }
   }
 
@@ -463,6 +496,21 @@ export function discoverHeadTextureFiles(
   }
 
   return textures.sort()
+}
+
+/**
+ * Check if a specific asset exists
+ */
+export function assetExists(path: string): boolean {
+  const fullPath = `/public${path}`
+  return fullPath in assetFiles
+}
+
+/**
+ * Get all discovered asset paths (for debugging)
+ */
+export function getAllAssetPaths(): string[] {
+  return Object.keys(assetFiles).map(path => path.replace('/public', ''))
 }
 
 /**

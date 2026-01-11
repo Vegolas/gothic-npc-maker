@@ -167,7 +167,7 @@ function ArmorCard({ id, name, isSelected, onClick, gameVersion }: ArmorCardProp
 
       {/* Label overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker via-obsidian-darker/90 to-transparent p-0.5 pt-3">
-        <p className="text-[10px] font-medium text-text-primary truncate text-center leading-tight">
+        <p className="text-[9px] font-medium text-text-primary text-center leading-tight break-words">
           {formatArmorName(name)}
         </p>
       </div>
@@ -188,7 +188,7 @@ function ArmorCard({ id, name, isSelected, onClick, gameVersion }: ArmorCardProp
 
 /**
  * Format armor name for display in the card
- * Truncates long names and removes common prefixes
+ * Removes common prefixes
  */
 function formatArmorName(name: string): string {
   // Remove common prefixes
@@ -206,11 +206,6 @@ function formatArmorName(name: string): string {
     .replace(/^DJG /i, 'D.')
     .replace(/^BDT /i, 'Bd.')
     .replace(/YOURHANNES/i, 'YH')
-
-  // Truncate if still too long
-  if (formatted.length > 8) {
-    formatted = formatted.substring(0, 7) + '…'
-  }
 
   return formatted
 }
