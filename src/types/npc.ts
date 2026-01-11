@@ -97,7 +97,7 @@ export const DEFAULT_NPC_CONFIG: NPCConfig = {
   bodyTexture: 0,
   bodyTextureFile: null,
   skinColor: 0,
-  headMesh: 'BALD',  // G1 default head
+  headMesh: 'HUM_HEAD_BALD',  // G1 default head
   headTexture: 0,
   headTextureFile: null,
   teethTexture: 0,
