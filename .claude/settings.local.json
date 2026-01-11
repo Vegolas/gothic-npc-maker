@@ -13,7 +13,9 @@
       "mcp__shadcn__get_component_details",
       "Bash(npm run dev:*)",
       "Bash(timeout:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(dir /b \"E:\\\\git\\\\npc-maker\\\\public\\\\assets\"\")",
+      "Bash(dir /b \"E:\\\\git\\\\npc-maker\\\\public\\\\assets\\\\g1\\\\data\"\")"
     ]
   }
 }

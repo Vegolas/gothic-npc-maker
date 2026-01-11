@@ -8,6 +8,15 @@ export type NPCType = 'main' | 'ambient' | 'friend'
 export type GameVersion = 'g1' | 'g2'
 
 /**
+ * Head offset configuration for 3D positioning
+ */
+export interface HeadOffsets {
+  x: number
+  y: number
+  z: number
+}
+
+/**
  * Daily routine entry
  */
 export interface RoutineEntry {

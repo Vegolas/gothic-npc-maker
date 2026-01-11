@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
 import { getGuilds } from '../../data/guilds'
 import { getFightTactics } from '../../data/fightTactics'
+import { ATTRIBUTE_RANGES, NPC_TYPES } from '../../config/constants'
 import { InputNew } from '../ui/input-new'
 import { SliderNew } from '../ui/slider-new'
 import { VoiceSelector } from '../selectors'
@@ -70,14 +71,16 @@ export function IdentityEditor() {
               </SelectContent>
             </Select>
 
-            <Select value={config.npcType} onValueChange={(value) => store.setNPCType(value as 'main' | 'ambient' | 'friend')}>
+            <Select value={config.npcType} onValueChange={(value) => store.setNPCType(value as typeof NPC_TYPES[number])}>
               <SelectTrigger label="NPC Type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="main">Main</SelectItem>
-                <SelectItem value="ambient">Ambient</SelectItem>
-                <SelectItem value="friend">Friend</SelectItem>
+                {NPC_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -118,9 +121,9 @@ export function IdentityEditor() {
           <div className="grid grid-cols-[1fr,70px] gap-3 items-end">
             <SliderNew
               label="Strength"
-              min={0}
-              max={200}
-              step={5}
+              min={ATTRIBUTE_RANGES.strength.min}
+              max={ATTRIBUTE_RANGES.strength.max}
+              step={ATTRIBUTE_RANGES.strength.step}
               value={[config.strength]}
               onValueChange={([value]) => store.setStrength(value)}
               showValue={false}
@@ -129,7 +132,7 @@ export function IdentityEditor() {
               type="number"
               value={config.strength}
               onChange={(e) => store.setStrength(parseInt(e.target.value) || 0)}
-              min={0}
+              min={ATTRIBUTE_RANGES.strength.min}
               className="text-center"
             />
           </div>
@@ -138,9 +141,9 @@ export function IdentityEditor() {
           <div className="grid grid-cols-[1fr,70px] gap-3 items-end">
             <SliderNew
               label="Dexterity"
-              min={0}
-              max={200}
-              step={5}
+              min={ATTRIBUTE_RANGES.dexterity.min}
+              max={ATTRIBUTE_RANGES.dexterity.max}
+              step={ATTRIBUTE_RANGES.dexterity.step}
               value={[config.dexterity]}
               onValueChange={([value]) => store.setDexterity(value)}
               showValue={false}
@@ -149,7 +152,7 @@ export function IdentityEditor() {
               type="number"
               value={config.dexterity}
               onChange={(e) => store.setDexterity(parseInt(e.target.value) || 0)}
-              min={0}
+              min={ATTRIBUTE_RANGES.dexterity.min}
               className="text-center"
             />
           </div>
@@ -158,9 +161,9 @@ export function IdentityEditor() {
           <div className="grid grid-cols-[1fr,70px] gap-3 items-end">
             <SliderNew
               label="Mana"
-              min={0}
-              max={500}
-              step={10}
+              min={ATTRIBUTE_RANGES.mana.min}
+              max={ATTRIBUTE_RANGES.mana.max}
+              step={ATTRIBUTE_RANGES.mana.step}
               value={[config.manaMax]}
               onValueChange={([value]) => store.setManaMax(value)}
               showValue={false}
@@ -169,7 +172,7 @@ export function IdentityEditor() {
               type="number"
               value={config.manaMax}
               onChange={(e) => store.setManaMax(parseInt(e.target.value) || 0)}
-              min={0}
+              min={ATTRIBUTE_RANGES.mana.min}
               className="text-center"
             />
           </div>
@@ -178,9 +181,9 @@ export function IdentityEditor() {
           <div className="grid grid-cols-[1fr,70px] gap-3 items-end">
             <SliderNew
               label="Hitpoints"
-              min={1}
-              max={1000}
-              step={10}
+              min={ATTRIBUTE_RANGES.hitpoints.min}
+              max={ATTRIBUTE_RANGES.hitpoints.max}
+              step={ATTRIBUTE_RANGES.hitpoints.step}
               value={[config.hitpointsMax]}
               onValueChange={([value]) => store.setHitpointsMax(value)}
               showValue={false}
@@ -189,7 +192,7 @@ export function IdentityEditor() {
               type="number"
               value={config.hitpointsMax}
               onChange={(e) => store.setHitpointsMax(parseInt(e.target.value) || 1)}
-              min={1}
+              min={ATTRIBUTE_RANGES.hitpoints.min}
               className="text-center"
             />
           </div>

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { NPCConfig, Gender, GameVersion, RoutineEntry } from '../types/npc'
 import { DEFAULT_NPC_CONFIG } from '../types/npc'
 import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles, discoverHeadVariantsForSkinColor } from '../utils/assetDiscovery'
-import { getDefaultVoice } from '../data/voiceSets'
+import { getDefaultVoice, getHeadOffsets, FATNESS_RANGE, DEFAULT_TEXTURE_INDICES } from '../config/constants'
 
 /**
  * NPC Store State and Actions
@@ -72,35 +72,16 @@ export const useNPCStore = create<NPCStore>()(
       // Game version setter
       setGameVersion: (gameVersion) =>
         set((state) => {
-          // Set head offsets based on gender and game version
-          let headOffsetX = state.config.headOffsetX
-          let headOffsetY = state.config.headOffsetY
-          let headOffsetZ = state.config.headOffsetZ
-
-          // Apply G1 female offsets when switching to G1 with female gender
-          if (gameVersion === 'g1' && state.config.gender === 'female') {
-            headOffsetX = 0.01
-            headOffsetY = 0.01
-            headOffsetZ = -0.10
-          } else if (gameVersion === 'g2' && state.config.gender === 'female') {
-            // Reset to default for G2 female
-            headOffsetX = 0
-            headOffsetY = 0.10
-            headOffsetZ = 0.02
-          } else if (state.config.gender === 'male') {
-            // Reset to default for males
-            headOffsetX = 0
-            headOffsetY = 0.10
-            headOffsetZ = 0.02
-          }
+          // Get head offsets based on gender and game version from config
+          const offsets = getHeadOffsets(gameVersion, state.config.gender)
 
           return {
             config: {
               ...state.config,
               gameVersion,
-              headOffsetX,
-              headOffsetY,
-              headOffsetZ,
+              headOffsetX: offsets.x,
+              headOffsetY: offsets.y,
+              headOffsetZ: offsets.z,
             }
           }
         }),
@@ -128,26 +109,17 @@ export const useNPCStore = create<NPCStore>()(
       // For others: use variant-based (textureFile should be null)
       let bodyTextureFile = null
       let headTextureFile = null
-      let defaultTextureIndex = 0
+      const defaultTextureIndex = DEFAULT_TEXTURE_INDICES[gender]
 
       if (isG1Female) {
         const bodyTextureFiles = discoverBodyTextureFiles(newBodyMesh, state.config.gameVersion, gender)
         const headTextureFiles = discoverHeadTextureFiles(newHeadMesh, state.config.gameVersion, gender)
-        defaultTextureIndex = 1 // Avoid nude textures
         bodyTextureFile = bodyTextureFiles[defaultTextureIndex] || bodyTextureFiles[0] || null
         headTextureFile = headTextureFiles[defaultTextureIndex] || headTextureFiles[0] || null
       }
 
-      // Set head offsets based on gender and game version
-      let headOffsetX = 0
-      let headOffsetY = 0.10
-      let headOffsetZ = 0.02
-
-      if (isG1Female) {
-        headOffsetX = 0.01
-        headOffsetY = 0.01
-        headOffsetZ = -0.10
-      }
+      // Get head offsets from config
+      const offsets = getHeadOffsets(state.config.gameVersion, gender)
 
       return {
         config: {
@@ -161,9 +133,9 @@ export const useNPCStore = create<NPCStore>()(
           headTextureFile,
           armorInstance: isG1Female ? null : state.config.armorInstance, // Clear armor for G1 Female
           voice,
-          headOffsetX,
-          headOffsetY,
-          headOffsetZ,
+          headOffsetX: offsets.x,
+          headOffsetY: offsets.y,
+          headOffsetZ: offsets.z,
         },
       }
     }),
@@ -188,8 +160,7 @@ export const useNPCStore = create<NPCStore>()(
     set((state) => {
       // Initialize texture file to first available
       const textureFiles = discoverBodyTextureFiles(bodyMesh, state.config.gameVersion, state.config.gender)
-      // For female, use index 1 to avoid nude textures (index 0)
-      const defaultIndex = state.config.gender === 'female' ? 1 : 0
+      const defaultIndex = DEFAULT_TEXTURE_INDICES[state.config.gender]
       return {
         config: {
           ...state.config,
@@ -212,11 +183,11 @@ export const useNPCStore = create<NPCStore>()(
   setHeadMesh: (headMesh) =>
     set((state) => {
       const isG1Female = state.config.gameVersion === 'g1' && state.config.gender === 'female'
-      
+
       if (isG1Female) {
         // G1 Female: file-based selection
         const textureFiles = discoverHeadTextureFiles(headMesh, state.config.gameVersion, state.config.gender)
-        const defaultIndex = 1 // Avoid nude textures
+        const defaultIndex = DEFAULT_TEXTURE_INDICES[state.config.gender]
         return {
           config: {
             ...state.config,
@@ -233,13 +204,13 @@ export const useNPCStore = create<NPCStore>()(
           state.config.gameVersion,
           state.config.gender
         )
-        
+
         // Keep current variant if it exists for the new head, otherwise use first available
         const currentVariant = state.config.headTexture
-        const newVariant = availableVariants.includes(currentVariant) 
-          ? currentVariant 
+        const newVariant = availableVariants.includes(currentVariant)
+          ? currentVariant
           : (availableVariants.length > 0 ? availableVariants[0] : 0)
-        
+
         return {
           config: {
             ...state.config,
@@ -265,7 +236,7 @@ export const useNPCStore = create<NPCStore>()(
 
   setFatness: (fatness) =>
     set((state) => ({
-      config: { ...state.config, fatness: Math.max(0.8, Math.min(1.2, fatness)) },
+      config: { ...state.config, fatness: Math.max(FATNESS_RANGE.min, Math.min(FATNESS_RANGE.max, fatness)) },
     })),
 
   setHeadOffsetX: (headOffsetX) =>

@@ -58,23 +58,14 @@ Assets (3D models and textures) are **dynamically discovered at build time** usi
 **Adding new assets:**
 1. Place GLB model in appropriate folder
 2. Place textures with `_Vx_Cy` suffix (variant + skin color)
-3. For body textures with new base names, update `src/data/textures.ts`
-4. Rebuild or restart dev server - assets are discovered on build
+3. Rebuild or restart dev server - assets are discovered on build automatically
 
 ### Texture System (Hybrid)
 
 **Standard Mode (G2 Male/Female, G1 Male):**
 - Variant-based selection using `bodyTexture` + `skinColor`
 - Card-based UI showing texture previews
-- Supports multiple base names per body mesh (e.g., HUM_BODY_NAKED, HUM_BODY_COOKSMITH)
-- Configured in `src/data/textures.ts`:
-  ```typescript
-  'hum_body_Naked0': {
-    baseFileName: ['HUM_BODY_NAKED', 'HUM_BODY_COOKSMITH'],
-    variantCount: 5,
-    skinColorCount: 3,
-  }
-  ```
+- Textures are auto-discovered from the filesystem (no configuration needed)
 
 **G1 Female Mode:**
 - File-based selection using `bodyTextureFile` + `headTextureFile`
@@ -143,12 +134,14 @@ src/
 ├── types/
 │   ├── npc.ts            # NPCConfig interface and types
 │   └── assets.ts         # Asset-related types
+├── config/
+│   └── constants.ts      # Centralized application constants (ranges, defaults)
 └── data/
-    ├── textures.ts       # Body texture base name configuration
-    ├── guilds.ts         # Gothic guild definitions
-    ├── voiceSets.ts      # Voice set mappings
-    ├── fightTactics.ts   # Combat AI tactics
-    └── scenes.ts         # Available preview scenes
+    ├── guilds.ts         # Guild discovery (wraps assetDiscovery)
+    ├── voiceSets.ts      # Voice set discovery (wraps assetDiscovery)
+    ├── fightTactics.ts   # Combat AI tactics discovery
+    ├── scenes.ts         # Scene discovery (wraps assetDiscovery)
+    └── zenFiles.ts       # ZEN world file discovery
 ```
 
 ## Gothic-Specific Knowledge
@@ -243,7 +236,7 @@ import { loadTextureFromPaths } from '@/utils/textureLoader'
 - **ZEN parsing is limited** - Only uncompiled ASCII .ZEN files are supported
 - **Head texture variants are absolute** - Female heads use V137+ in filenames (no offset conversion)
 - **G1 Female restrictions** - No armor support, file-based texture selection only
-- **Multiple texture base names must be configured** - Not auto-detected, edit `src/data/textures.ts`
+- **All assets are auto-discovered** - No manual configuration needed for new assets
 
 ## Testing
 

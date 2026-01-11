@@ -4,6 +4,7 @@
  */
 
 import { discoverVoiceSets } from '../utils/assetDiscovery'
+import { getDefaultVoice } from '../config/constants'
 import type { GameVersion, Gender } from '../types/npc'
 
 export interface VoiceSet {
@@ -19,9 +20,5 @@ export function getVoiceSets(gameVersion: GameVersion, gender: Gender): VoiceSet
   return discoverVoiceSets(gameVersion, gender)
 }
 
-/**
- * Get default voice for a gender
- */
-export function getDefaultVoice(gender: Gender): number {
-  return gender === 'male' ? 1 : 18
-}
+// Re-export getDefaultVoice from central config for backward compatibility
+export { getDefaultVoice }

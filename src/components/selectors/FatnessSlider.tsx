@@ -1,5 +1,6 @@
 import { useNPCStore } from '../../stores/npcStore'
 import { SliderNew } from '../ui/slider-new'
+import { FATNESS_RANGE } from '../../config/constants'
 
 /**
  * Fatness slider component
@@ -12,9 +13,9 @@ export function FatnessSlider() {
   return (
     <SliderNew
       label="Fatness"
-      min={0.8}
-      max={1.2}
-      step={0.02}
+      min={FATNESS_RANGE.min}
+      max={FATNESS_RANGE.max}
+      step={FATNESS_RANGE.step}
       value={[fatness]}
       onValueChange={([value]) => setFatness(value)}
       valueFormat={(v) => v.toFixed(2)}
