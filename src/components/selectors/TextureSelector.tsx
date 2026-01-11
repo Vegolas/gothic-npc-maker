@@ -5,6 +5,7 @@ import {
   discoverHeadTextureFiles,
   discoverBodyTextureVariants,
   discoverHeadVariantsForSkinColor,
+  getBodyDirectory,
 } from '../../utils/assetDiscovery'
 import { getBodyTexturePath, getHeadTexturePath } from '../../utils/assetPaths'
 import { SliderNew } from '../ui/slider-new'
@@ -28,9 +29,11 @@ export function TextureSelector() {
 }
 
 /**
- * G1 Female texture selector - file-based (keeps slider for simplicity)
+ * G1 Female texture selector - file-based with card/slider switch
  */
 function G1FemaleTextureSelector() {
+  const [useCardView, setUseCardView] = useState(true)
+
   const gameVersion = useNPCStore((state) => state.config.gameVersion)
   const gender = useNPCStore((state) => state.config.gender)
   const bodyMesh = useNPCStore((state) => state.config.bodyMesh)
@@ -43,6 +46,8 @@ function G1FemaleTextureSelector() {
   const bodyTextureFiles = discoverBodyTextureFiles(bodyMesh, gameVersion, gender)
   const headTextureFiles = discoverHeadTextureFiles(headMesh, gameVersion, gender)
 
+  const bodyDirectory = getBodyDirectory(bodyMesh, gameVersion, gender)
+
   const bodyIndex = bodyTextureFile && bodyTextureFiles.length > 0
     ? bodyTextureFiles.indexOf(bodyTextureFile)
     : 0
@@ -53,6 +58,61 @@ function G1FemaleTextureSelector() {
     : 0
   const safeHeadIndex = headIndex >= 0 && headIndex < headTextureFiles.length ? headIndex : 0
 
+  return (
+    <div className="space-y-4">
+      {/* View Toggle */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-text-muted">View Mode</span>
+        <Switch
+          checked={useCardView}
+          onCheckedChange={setUseCardView}
+          label={useCardView ? 'Cards' : 'Sliders'}
+        />
+      </div>
+
+      {useCardView ? (
+        <G1FemaleCardView
+          bodyTextureFiles={bodyTextureFiles}
+          headTextureFiles={headTextureFiles}
+          bodyTextureFile={bodyTextureFile}
+          headTextureFile={headTextureFile}
+          setBodyTextureFile={setBodyTextureFile}
+          setHeadTextureFile={setHeadTextureFile}
+          bodyDirectory={bodyDirectory}
+          gameVersion={gameVersion}
+          gender={gender}
+        />
+      ) : (
+        <G1FemaleSliderView
+          bodyTextureFiles={bodyTextureFiles}
+          headTextureFiles={headTextureFiles}
+          safeBodyIndex={safeBodyIndex}
+          safeHeadIndex={safeHeadIndex}
+          setBodyTextureFile={setBodyTextureFile}
+          setHeadTextureFile={setHeadTextureFile}
+        />
+      )}
+    </div>
+  )
+}
+
+interface G1FemaleSliderViewProps {
+  bodyTextureFiles: string[]
+  headTextureFiles: string[]
+  safeBodyIndex: number
+  safeHeadIndex: number
+  setBodyTextureFile: (file: string | null) => void
+  setHeadTextureFile: (file: string | null) => void
+}
+
+function G1FemaleSliderView({
+  bodyTextureFiles,
+  headTextureFiles,
+  safeBodyIndex,
+  safeHeadIndex,
+  setBodyTextureFile,
+  setHeadTextureFile,
+}: G1FemaleSliderViewProps) {
   return (
     <div className="space-y-4">
       {bodyTextureFiles.length > 0 ? (
@@ -93,6 +153,146 @@ function G1FemaleTextureSelector() {
         <div className="text-xs text-text-muted">No head textures found</div>
       )}
     </div>
+  )
+}
+
+interface G1FemaleCardViewProps {
+  bodyTextureFiles: string[]
+  headTextureFiles: string[]
+  bodyTextureFile: string | null
+  headTextureFile: string | null
+  setBodyTextureFile: (file: string | null) => void
+  setHeadTextureFile: (file: string | null) => void
+  bodyDirectory: string | null
+  gameVersion: GameVersion
+  gender: Gender
+}
+
+function G1FemaleCardView({
+  bodyTextureFiles,
+  headTextureFiles,
+  bodyTextureFile,
+  headTextureFile,
+  setBodyTextureFile,
+  setHeadTextureFile,
+  bodyDirectory,
+  gameVersion,
+  gender,
+}: G1FemaleCardViewProps) {
+  return (
+    <div className="space-y-4">
+      {/* Body Texture Cards */}
+      {bodyTextureFiles.length > 0 ? (
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
+            Body Texture
+          </label>
+          <div className="grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1 rounded">
+            {bodyTextureFiles.map((filename) => (
+              <TextureFileCard
+                key={filename}
+                filename={filename}
+                isSelected={bodyTextureFile === filename}
+                onClick={() => setBodyTextureFile(filename)}
+                texturePath={bodyDirectory
+                  ? `/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${filename}`
+                  : null
+                }
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-xs text-text-muted">No body textures found</div>
+      )}
+
+      {/* Head Texture Cards */}
+      {headTextureFiles.length > 0 ? (
+        <div className="space-y-1">
+          <label className="text-[10px] font-medium text-text-muted uppercase tracking-wide">
+            Head Texture
+          </label>
+          <div className="grid grid-cols-8 gap-1 max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-iron-dark scrollbar-track-obsidian p-1 rounded">
+            {headTextureFiles.map((filename) => (
+              <TextureFileCard
+                key={filename}
+                filename={filename}
+                isSelected={headTextureFile === filename}
+                onClick={() => setHeadTextureFile(filename)}
+                texturePath={`/assets/${gameVersion}/${gender}/textures/head/${filename}`}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-xs text-text-muted">No head textures found</div>
+      )}
+    </div>
+  )
+}
+
+interface TextureFileCardProps {
+  filename: string
+  isSelected: boolean
+  onClick: () => void
+  texturePath: string | null
+}
+
+function TextureFileCard({
+  filename,
+  isSelected,
+  onClick,
+  texturePath,
+}: TextureFileCardProps) {
+  // Extract a short label from filename (e.g., "BAB_BODY_V0_C0.PNG" -> "V0_C0")
+  const labelMatch = filename.match(/_V(\d+)(?:_C(\d+))?\./)
+  const label = labelMatch
+    ? `V${labelMatch[1]}${labelMatch[2] !== undefined ? `_C${labelMatch[2]}` : ''}`
+    : filename.replace(/\.[^.]+$/, '').slice(-8)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "relative aspect-square rounded border overflow-hidden transition-all",
+        "hover:scale-105 hover:shadow-md",
+        isSelected
+          ? "border-ember shadow-sm shadow-ember/20 ring-1 ring-ember"
+          : "border-iron-dark/50 hover:border-iron"
+      )}
+      title={filename}
+    >
+      {/* Texture Preview */}
+      <div className="absolute inset-0 bg-obsidian-darker">
+        {texturePath ? (
+          <img
+            src={texturePath}
+            alt={filename}
+            className="w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-[8px] text-text-muted">{label}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Label overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-obsidian-darker/90 to-transparent px-0.5 pb-0.5 pt-1">
+        <p className="text-[8px] font-medium text-text-primary text-center truncate">
+          {label}
+        </p>
+      </div>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <div className="absolute top-0 right-0">
+          <div className="w-1.5 h-1.5 rounded-full bg-ember" />
+        </div>
+      )}
+    </button>
   )
 }
 
