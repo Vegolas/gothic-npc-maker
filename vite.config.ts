@@ -1,12 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': '/src',
+export default defineConfig(({ mode }) => {
+  const base = mode === 'production' ? '/gothic-npc-maker/' : '/'
+  return {
+    base,
+    plugins: [react()],
+    resolve: {
+      alias: {
+        '@': '/src',
+      },
     },
-  },
+  }
 })

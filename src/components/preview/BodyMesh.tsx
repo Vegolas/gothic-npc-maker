@@ -37,7 +37,7 @@ export function BodyMesh({
   const isG1Female = gameVersion === 'g1' && gender === 'female'
   const bodyDirectory = getBodyDirectory(meshId, gameVersion, gender)
   const texturePaths = (isG1Female && textureFile && bodyDirectory)
-    ? [`/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${textureFile}`]
+    ? [`${import.meta.env.BASE_URL}assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${textureFile}`]
     : getBodyTexturePaths(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {

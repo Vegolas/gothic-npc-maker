@@ -6,12 +6,9 @@
 import type { Gender, GameVersion } from '../types/npc'
 import { discoverBodies, discoverHeads, discoverArmors, findBodyTexture, findBodyTextures, findHeadTexture } from './assetDiscovery'
 
-// Base path for all assets
-const ASSETS_BASE = '/assets'
-
 /**
  * Get the path to a body mesh file
- * New structure: /assets/{version}/{gender}/bodies/{directory}/{mesh}.glb
+ * Uses the pre-discovered path from assetDiscovery (which includes base URL)
  */
 export function getBodyMeshPath(meshId: string, gender: Gender, gameVersion: GameVersion): string {
   const bodies = discoverBodies(gameVersion, gender)
@@ -22,37 +19,39 @@ export function getBodyMeshPath(meshId: string, gender: Gender, gameVersion: Gam
     return ''
   }
 
-  return `${ASSETS_BASE}/${gameVersion}/${gender}/bodies/${body.directory}/${body.fileName}`
+  return body.path
 }
 
 /**
  * Get the path to a head mesh file
+ * Uses the pre-discovered path from assetDiscovery (which includes base URL)
  */
 export function getHeadMeshPath(meshId: string, gender: Gender, gameVersion: GameVersion): string {
   const heads = discoverHeads(gameVersion, gender)
   const head = heads.find(h => h.id === meshId)
-  
+
   if (!head) {
     console.warn(`Head mesh not found: ${meshId}`)
     return ''
   }
-  
-  return `${ASSETS_BASE}/${gameVersion}/${gender}/heads/${head.fileName}`
+
+  return head.path
 }
 
 /**
  * Get the path to an armor mesh file
+ * Uses the pre-discovered path from assetDiscovery (which includes base URL)
  */
 export function getArmorMeshPath(armorId: string, gameVersion: GameVersion): string {
   const armors = discoverArmors(gameVersion)
   const armor = armors.find(a => a.id === armorId)
-  
+
   if (!armor) {
     console.warn(`Armor mesh not found: ${armorId}`)
     return ''
   }
-  
-  return `${ASSETS_BASE}/${gameVersion}/armors/${armor.fileName}`
+
+  return armor.path
 }
 
 /**

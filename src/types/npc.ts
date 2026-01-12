@@ -123,7 +123,7 @@ export const DEFAULT_NPC_CONFIG: NPCConfig = {
   manaMax: 0,
   hitpointsMax: 40,
 
-  fightTactic: 'FAI_HUMAN_NORMAL',
+  fightTactic: 'FAI_HUMAN_STRONG',
   waypoint: 'START',
   dailyRoutine: [],
   zenWorldFile: null,

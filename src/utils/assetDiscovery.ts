@@ -15,6 +15,15 @@
 
 import type { GameVersion, Gender } from '../types/npc'
 
+/**
+ * Convert internal asset path to public URL with base
+ * @param path Internal path like "/public/assets/..."
+ * @returns Public URL like "/gothic-npc-maker/assets/..." (respects BASE_URL)
+ */
+function toPublicPath(path: string): string {
+  return import.meta.env.BASE_URL + path.replace(/^.*\/public\//, '')
+}
+
 // Discover all GLB files in the assets directory at build time
 // NOTE: Use a relative glob on Windows to avoid drive-letter import specifiers during Vite build.
 const assetFiles = import.meta.glob('../../public/assets/**/*.glb', { eager: false, as: 'url' })
@@ -169,9 +178,9 @@ export function getBodyDirectory(
   for (const [path] of Object.entries(assetFiles)) {
     const info = parseBodyPath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.id === bodyId) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.id === bodyId) {
       return info.directory
     }
   }
@@ -195,13 +204,13 @@ export function discoverBodies(gameVersion: GameVersion, gender: Gender): Array<
   for (const [path] of Object.entries(assetFiles)) {
     const info = parseBodyPath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender) {
       bodies.push({
         id: info.id,
         name: info.id.replace(/_/g, ' '),
         fileName: info.fileName,
-        path: path.replace(/^.*\/public/, ''),
+        path: toPublicPath(path),
         directory: info.directory
       })
     }
@@ -224,13 +233,13 @@ export function discoverHeads(gameVersion: GameVersion, gender: Gender): Array<{
   for (const [path] of Object.entries(assetFiles)) {
     const info = parseHeadPath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender) {
       heads.push({
         id: info.id,
         name: info.id.replace(/_/g, ' '),
         fileName: info.fileName,
-        path: path.replace(/^.*\/public/, '')
+        path: toPublicPath(path)
       })
     }
   }
@@ -260,7 +269,7 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
         id,
         name: id.replace(/_/g, ' '),
         fileName,
-        path: path.replace(/^.*\/public/, '')
+        path: toPublicPath(path)
       })
     }
   }
@@ -289,9 +298,9 @@ export function discoverBodyTextureVariants(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseBodyTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.directory.toUpperCase() === directory.toUpperCase()) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.directory.toUpperCase() === directory.toUpperCase()) {
       variants.add(info.variant)
       skinColors.add(info.skinColor)
     }
@@ -323,9 +332,9 @@ export function discoverHeadVariantsForSkinColor(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseHeadTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.skinColor === skinColor) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.skinColor === skinColor) {
       variants.add(info.variant)
     }
   }
@@ -347,8 +356,8 @@ export function discoverHeadTextureVariants(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseHeadTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender) {
       variants.add(info.variant)
       skinColors.add(info.skinColor)
     }
@@ -379,12 +388,12 @@ export function findBodyTexture(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseBodyTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.directory.toUpperCase() === directory.toUpperCase() &&
-        info.variant === variant &&
-        info.skinColor === skinColor) {
-      return path.replace(/^.*\/public/, '')
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.directory.toUpperCase() === directory.toUpperCase() &&
+      info.variant === variant &&
+      info.skinColor === skinColor) {
+      return toPublicPath(path)
     }
   }
 
@@ -412,12 +421,12 @@ export function findBodyTextures(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseBodyTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.directory.toUpperCase() === directory.toUpperCase() &&
-        info.variant === variant &&
-        info.skinColor === skinColor) {
-      matchingTextures.push(path.replace(/^.*\/public/, ''))
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.directory.toUpperCase() === directory.toUpperCase() &&
+      info.variant === variant &&
+      info.skinColor === skinColor) {
+      matchingTextures.push(toPublicPath(path))
     }
   }
 
@@ -437,11 +446,11 @@ export function findHeadTexture(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseHeadTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.variant === variant &&
-        info.skinColor === skinColor) {
-      return path.replace(/^.*\/public/, '')
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.variant === variant &&
+      info.skinColor === skinColor) {
+      return toPublicPath(path)
     }
   }
 
@@ -467,9 +476,9 @@ export function discoverBodyTextureFiles(
   for (const [path] of Object.entries(textureFiles)) {
     const info = parseBodyTexturePath(path)
     if (info &&
-        info.gameVersion === gameVersion &&
-        info.gender === gender &&
-        info.directory.toUpperCase() === directory.toUpperCase()) {
+      info.gameVersion === gameVersion &&
+      info.gender === gender &&
+      info.directory.toUpperCase() === directory.toUpperCase()) {
       textures.push(info.fileName)
     }
   }
@@ -511,7 +520,7 @@ export function assetExists(path: string): boolean {
  * Get all discovered asset paths (for debugging)
  */
 export function getAllAssetPaths(): string[] {
-  return Object.keys(assetFiles).map(path => path.replace(/^.*\/public/, ''))
+  return Object.keys(assetFiles).map(path => toPublicPath(path))
 }
 
 /**
@@ -543,12 +552,12 @@ export async function discoverGuilds(gameVersion: GameVersion): Promise<string[]
 /**
  * Discover fight tactics from data files
  * Expects files at: /public/assets/{g1|g2}/data/tactics.txt
- * Format: one tactic ID per line (e.g., "FAI_HUMAN_COWARD", "FAI_HUMAN_NORMAL")
+ * Format: one tactic ID per line (e.g., "FAI_HUMAN_COWARD", "FAI_HUMAN_STRONG")
  */
 export async function discoverFightTactics(gameVersion: GameVersion): Promise<string[]> {
   const path = `/public/assets/${gameVersion}/data/tactics.txt`
   const loader = dataFiles[path]
-
+    ``
   if (!loader) {
     console.warn(`Tactics file not found: ${path}`)
     return []
@@ -586,7 +595,7 @@ export function discoverVoiceSets(gameVersion: GameVersion, gender: Gender): Arr
         if (!voiceSets.has(voiceId)) {
           voiceSets.set(voiceId, [])
         }
-        voiceSets.get(voiceId)!.push(path.replace(/^.*\/public/, ''))
+        voiceSets.get(voiceId)!.push(toPublicPath(path))
       }
     }
   }
@@ -615,7 +624,7 @@ export function discoverScenes(_gameVersion: GameVersion): Array<{
       scenes.push({
         id,
         fileName,
-        path: path.replace(/^.*\/public/, '')
+        path: toPublicPath(path)
       })
     }
   }
@@ -639,7 +648,7 @@ export function discoverZenFiles(gameVersion: GameVersion): Array<{
       const fileName = path.split('/').pop() || ''
       zens.push({
         fileName,
-        path: path.replace(/^.*\/public/, '')
+        path: toPublicPath(path)
       })
     }
   }

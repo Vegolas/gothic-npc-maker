@@ -195,7 +195,7 @@ function G1FemaleCardView({
                 isSelected={bodyTextureFile === filename}
                 onClick={() => setBodyTextureFile(filename)}
                 texturePath={bodyDirectory
-                  ? `/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${filename}`
+                  ? `${import.meta.env.BASE_URL}assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${filename}`
                   : null
                 }
               />
@@ -219,7 +219,7 @@ function G1FemaleCardView({
                 filename={filename}
                 isSelected={headTextureFile === filename}
                 onClick={() => setHeadTextureFile(filename)}
-                texturePath={`/assets/${gameVersion}/${gender}/textures/head/${filename}`}
+                texturePath={`${import.meta.env.BASE_URL}assets/${gameVersion}/${gender}/textures/head/${filename}`}
               />
             ))}
           </div>

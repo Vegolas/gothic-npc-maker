@@ -41,7 +41,7 @@ export function HeadMesh({
   // For non-G1-female, ignore textureFile and always use variant/skinColor
   const isG1Female = gameVersion === 'g1' && gender === 'female'
   const texturePath = (isG1Female && textureFile)
-    ? `/assets/${gameVersion}/${gender}/textures/head/${textureFile}`
+    ? `${import.meta.env.BASE_URL}assets/${gameVersion}/${gender}/textures/head/${textureFile}`
     : getHeadTexturePath(meshId, textureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {

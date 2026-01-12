@@ -3,7 +3,7 @@
  */
 export async function parseActions(gameVersion: 'g1' | 'g2'): Promise<string[]> {
   try {
-    const response = await fetch(`/assets/${gameVersion}/Ta.d`)
+    const response = await fetch(`${import.meta.env.BASE_URL}assets/${gameVersion}/Ta.d`)
     const content = await response.text()
     
     // Match lines like: func void TA_Cook(...)

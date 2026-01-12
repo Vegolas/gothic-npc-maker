@@ -40,7 +40,7 @@ export function ArmorMesh({
   const isG1Female = gameVersion === 'g1' && gender === 'female'
   const bodyDirectory = getBodyDirectory(bodyMesh, gameVersion, gender)
   const bodyTexturePath = (isG1Female && bodyTextureFile && bodyDirectory)
-    ? `/assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${bodyTextureFile}`
+    ? `${import.meta.env.BASE_URL}assets/${gameVersion}/${gender}/bodies/${bodyDirectory}/${bodyTextureFile}`
     : getBodyTexturePath(bodyMesh, bodyTextureVariant, skinColor, gender, gameVersion)
 
   if (!modelPath) {
