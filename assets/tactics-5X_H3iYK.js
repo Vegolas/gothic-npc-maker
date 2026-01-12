@@ -1,0 +1,7 @@
+const A=`# Gothic 1 Fight Tactics
+# One tactic ID per line
+FAI_HUMAN_COWARD
+FAI_HUMAN_NORMAL
+FAI_HUMAN_STRONG
+FAI_HUMAN_MASTER
+`;export{A as default};

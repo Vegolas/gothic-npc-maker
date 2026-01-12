@@ -1,0 +1,9 @@
+const A=`# Gothic 2 Fight Tactics
+# One tactic ID per line
+FAI_HUMAN_COWARD
+FAI_HUMAN_NORMAL
+FAI_HUMAN_STRONG
+FAI_HUMAN_MASTER
+FAI_HUMAN_RANGED
+FAI_HUMAN_MAGE
+`;export{A as default};
