@@ -40,28 +40,17 @@ Binary files starting with non-ASCII characters - these will be rejected with an
 
 To add new world files:
 
-1. Place the uncompiled .ZEN file in `public/assets/{g1|g2}/worlds/`
-2. Add the filename to the manifest in `src/data/zenFiles.ts`:
+1. Place an **uncompiled (ASCII)** `.ZEN`/`.zen` file in `public/assets/{g1|g2}/worlds/`
+2. Restart the dev server (or rebuild) so Vite picks up the new asset
 
-```typescript
-export const ZEN_FILES: ZenFileManifest = {
-  g1: [
-    'WORLD UNCOMPILED.ZEN',
-    'YOUR_NEW_WORLD.ZEN'  // Add here
-  ],
-  g2: [
-    'WORLD UNCOMPILED.ZEN',
-    'YOUR_NEW_WORLD.ZEN'  // Add here
-  ]
-}
-```
+There is **no manual manifest** to update: world files are dynamically discovered at build time via Vite `import.meta.glob` (see `src/utils/assetDiscovery.ts`).
 
 ## Technical Details
 
 ### Components
 - `ZenFileSelector.tsx` - UI component for file selection and status display
 - `zenParser.ts` - Utilities for validating and parsing ZEN files
-- `zenFiles.ts` - Manifest of available world files
+- `zenFiles.ts` - Wrapper for dynamically discovered world files
 
 ### Parsing Logic
 The parser extracts waypoint names using regex patterns:

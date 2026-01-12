@@ -1,6 +1,8 @@
 # Texture Selection System
 
-The NPC Maker uses a **hybrid texture selection system** that combines variant-based selection (standard) with file-based selection (G1 Female special case).
+The NPC Maker uses a **hybrid texture selection system**:
+- **Standard mode (variant-based)** for G2 Male/Female and G1 Male
+- **G1 Female mode (file-based override)** for previewing textures by exact filename
 
 ## How It Works
 
@@ -9,216 +11,145 @@ The NPC Maker uses a **hybrid texture selection system** that combines variant-b
 **Used for:** G2 Male, G2 Female, G1 Male
 
 Textures are selected using two parameters:
-- **Variant** (V0, V1, V2...) - Texture variation/design
-- **Skin Color** (C0, C1, C2) - Skin tone (light, medium, dark)
+- **Variant** (V0, V1, V2...) - texture variation/design
+- **Skin Color** (C0, C1, C2...) - skin tone
 
-The system constructs and tries multiple filename patterns based on configured base names.
+**Body textures are resolved by directory, not by base-name matching.** The selected body mesh lives in a body *category directory*, and all textures inside that directory are considered compatible with all meshes in that directory.
 
-**Example for male body with variant 0 and skin color 1:**
-```
-HUM_BODY_NAKED_V0_C1.PNG     ← Tried first
-HUM_BODY_COOKSMITH_V0_C1.PNG ← Tried if first fails
+**Example** (body directory contains multiple meshes sharing the same textures):
+```text
+/public/assets/g2/male/bodies/HUM_BODY_NAKED/
+  HUM_BODY_NAKED0.glb
+  HUM_BODY_NAKED1.glb
+  V0_C0.png
+  V0_C1.png
+  V1_C0.png
 ```
 
 **Key Features:**
 - Card-based UI showing texture thumbnails
-- Skin color selector (always uses V0 for preview consistency)
+- Skin color selector (uses V0 for preview consistency)
 - Body variant selector
 - Head variant selector
-- All selectors show actual texture previews
 
-### G1 Female System (File-Based)
+### G1 Female System (File-Based Override)
 
 **Used for:** G1 Female only
 
-G1 female models use direct file selection because:
-- Textures don't follow the standard V/C naming convention
-- No armor support
-- Historically used custom texture names
+G1 female uses **direct texture filename selection** for preview because the available textures are best treated as a browseable set (and armor is disabled for G1 female).
 
 **Features:**
-- Slider-based UI showing texture count (1/5, 2/5...)
-- Filename display below slider
+- Card/slider UI for selecting **bodyTextureFile** and **headTextureFile**
 - No skin color selector
 - No armor selector
-- Direct file path selection
 
 ## Texture Discovery
 
-### Body Textures
+All assets are discovered at build time via Vite `import.meta.glob` (see `src/utils/assetDiscovery.ts`).
 
-**Location:** `/public/assets/{g1|g2}/{male|female}/textures/body/`
+### Body Meshes + Body Textures (Directory-Based)
 
-**Naming Convention:** `BASENAME_Vx_Cy.{png|PNG|tga|TGA}`
-- `BASENAME` - One or more configured base names (e.g., HUM_BODY_NAKED, HUM_BODY_COOKSMITH)
-- `x` - Variant number (0-N)
-- `y` - Skin color (0-2)
-
-**Multi-Base Name Support:**
-Body meshes can have multiple texture base names configured in `src/data/textures.ts`:
-```typescript
-'hum_body_Naked0': {
-  baseFileName: ['HUM_BODY_NAKED', 'HUM_BODY_COOKSMITH'],
-  variantCount: 5,
-  skinColorCount: 3,
-}
+**Location:**
+```text
+/public/assets/{g1|g2}/{male|female}/bodies/{CATEGORY}/
 ```
 
-The loader tries all configured base names sequentially until one loads successfully.
+- One **CATEGORY** directory can contain **one or more** `.glb` body meshes.
+- **All textures in that CATEGORY directory apply to all meshes in the same directory.**
 
-**Discovery Rules:**
-- Textures are matched by checking if the base name matches the body mesh
-- Body mesh `hum_body_Naked0` matches both `HUM_BODY_NAKED_*` and `HUM_BODY_COOKSMITH_*`
-- Female textures use the same base names but are in separate directories
+**Body texture naming convention (discovery):**
+- Any filename that contains `_V{variant}` and optional `_C{skinColor}` is discovered.
+- Examples:
+  - `V0_C0.png`
+  - `HUM_BODY_SOMETHING_V2_C1.tga`
+  - `FOO_V3.jpg`
+
+If `_C{skinColor}` is omitted, skin color defaults to `0`.
+
+> Backward compatibility: legacy bodies at `/public/assets/{g1|g2}/{male|female}/bodies/{MESH}.glb` are still supported; the mesh name is treated as the directory name for texture lookup.
 
 ### Head Textures
 
-**Location:** `/public/assets/{g1|g2}/{male|female}/textures/head/`
+**Location:**
+```text
+/public/assets/{g1|g2}/{male|female}/textures/head/
+```
 
-**Naming Convention:** `HUM_HEAD_Vx_Cy.{png|PNG|tga|TGA}`
+**Naming convention:** `{BASENAME}_V{x}_C{y}.{png|tga|jpg}`
 
 **Important - Absolute Variant Numbers:**
-- **Male heads:** V0-V136 (e.g., `HUM_HEAD_V0_C0.png`)
-- **Female heads:** V137+ (e.g., `HUM_HEAD_V137_C0.png`)
+- **Male heads:** V0-V136
+- **Female heads:** V137+
 
-The variant number in the filename IS the Daedalus script value. No offset calculation is performed.
-
-**Discovery Rules:**
-- All head textures in the gender's directory are discovered
-- Variant numbers are extracted directly from filenames
-- No mesh-specific filtering (all heads can use any head texture)
+The variant number in the filename is used directly in Daedalus (no offset conversion).
 
 ## Storage
 
 The NPC configuration stores:
 
 **Standard Mode (G2 Male/Female, G1 Male):**
-- `bodyTexture: number` - Body texture variant index (0-N)
-- `headTexture: number` - Head texture variant index (absolute: 0-136 for male, 137+ for female)
-- `skinColor: number` - Skin color index (0-2)
-- `bodyTextureFile: null` - Not used
-- `headTextureFile: null` - Not used
+- `bodyTexture: number` - body variant index
+- `skinColor: number` - skin color index
+- `headTexture: number` - head variant index (absolute)
+- `bodyTextureFile/headTextureFile: null`
 
-**G1 Female Mode:**
-- `bodyTextureFile: string | null` - Full texture filename (e.g., "BABE_BODY_V0.PNG")
-- `headTextureFile: string | null` - Full texture filename (e.g., "BABE_HEAD_V1.PNG")
-- `bodyTexture: number` - Legacy, not used
-- `headTexture: number` - Legacy, not used
-- `skinColor: number` - Legacy, not used
+**G1 Female Mode (preview):**
+- `bodyTextureFile: string | null` - exact body texture filename
+- `headTextureFile: string | null` - exact head texture filename
+- The numeric fields (`bodyTexture/headTexture/skinColor`) are still present for legacy reasons.
 
 ## Texture Loading Pipeline
 
 1. **Discovery** (`src/utils/assetDiscovery.ts`)
    - Scans texture files using `import.meta.glob` at build time
-   - Extracts variant and skin color from filenames
-   - Returns all matching texture paths
+   - For bodies: extracts `{variant, skinColor}` from files in the selected body directory
 
 2. **Path Resolution** (`src/utils/assetPaths.ts`)
-   - `getBodyTexturePaths()` returns array of possible paths to try
-   - Uses `findBodyTextures()` to get all matching base names
-   - `getHeadTexturePath()` returns single path (heads have one base name)
+   - Standard mode uses `getBodyTexturePaths()` / `getHeadTexturePath()`
+   - G1 female preview can override with the exact filename (`bodyTextureFile` / `headTextureFile`)
 
 3. **Sequential Loading** (`src/utils/textureLoader.ts`)
-   - `loadTextureFromPaths()` tries each path in sequence
-   - Tries PNG, TGA, JPG extensions for each path
-   - Returns first successful texture or null
+   - Tries candidate paths sequentially (PNG/TGA/JPG)
 
 4. **Mesh Application** (`src/components/preview/BodyMesh.tsx`, `HeadMesh.tsx`)
-   - Receives texture paths based on mode (file-based or variant-based)
-   - Applies loaded texture to mesh material
-   - Falls back to placeholder color if loading fails
+   - Applies loaded texture (or a fallback color if missing)
 
 ## Daedalus Script Generation
 
-The script generator uses the stored values directly:
+The script generator currently uses the numeric values:
 
-**Standard Mode:**
 ```daedalus
 Mdl_SetVisualBody(self, "hum_body_Naked0", 0, 1, "Hum_Head_Pony", 5, 0, ITAR_PAL_H);
 //                       body mesh        variant  skin  head mesh    variant  teeth  armor
 ```
 
-**G1 Female Mode:**
-- Body/head texture files are converted to variant numbers for script generation
-- Or custom handling is applied (implementation-specific)
-
-## Automatic Initialization
-
-When changing:
-- **Game Version** → Resets to defaults for that version
-- **Gender** → Loads first body/head for gender, sets appropriate texture mode
-  - G1 Female → File-based mode, first texture file
-  - Others → Variant-based mode, variant 0, skin color 0
-- **Body Mesh** → Loads first available texture for that mesh
-- **Head Mesh** → Loads first available texture variant
+Note: `bodyTextureFile/headTextureFile` are used for **preview/export**, but are **not currently converted** into Daedalus values by `src/utils/daedalusGenerator.ts`.
 
 ## Adding New Textures
 
 ### Standard Textures (G2 Male/Female, G1 Male)
 
-1. Create texture with proper naming: `BASENAME_V{variant}_C{skinColor}.png`
-2. Place in: `/public/assets/{g1|g2}/{male|female}/textures/{body|head}/`
-3. Rebuild or restart dev server
+1. Put the body mesh(es) and textures together in a category directory:
+   - `/public/assets/{g1|g2}/{male|female}/bodies/{CATEGORY}/`
+2. Name textures with `_V{variant}` (and optionally `_C{skinColor}`)
+3. Restart dev server (or rebuild) so Vite picks up new assets
 
 Example:
-```
-/public/assets/g1/male/textures/body/HUM_BODY_NAKED_V5_C0.PNG
-/public/assets/g1/male/textures/body/HUM_BODY_COOKSMITH_V5_C0.PNG
-/public/assets/g1/male/textures/head/HUM_HEAD_V20_C0.PNG
+```text
+/public/assets/g2/male/bodies/HUM_BODY_NAKED/V0_C0.png
+/public/assets/g2/male/bodies/HUM_BODY_NAKED/V0_C1.png
+/public/assets/g2/male/bodies/HUM_BODY_NAKED/V1_C0.png
 ```
 
 ### G1 Female Textures
 
-1. Any filename works (no strict naming convention)
-2. Place in: `/public/assets/g1/female/textures/{body|head}/`
-3. Rebuild or restart dev server
-
-Example:
-```
-/public/assets/g1/female/textures/body/BABE_CUSTOM_DRESS.PNG
-/public/assets/g1/female/textures/head/BABE_FACE_BLONDE.PNG
-```
-
-### Adding New Base Names
-
-To add support for new body texture base names:
-
-1. Edit `src/data/textures.ts`
-2. Add to `baseFileName` array:
-```typescript
-'hum_body_Naked0': {
-  baseFileName: ['HUM_BODY_NAKED', 'HUM_BODY_COOKSMITH', 'HUM_BODY_CUSTOM'],
-  variantCount: 5,
-  skinColorCount: 3,
-}
-```
-3. Add corresponding texture files
-4. Rebuild
-
-## UI Components
-
-### Card-Based Selector (Standard Mode)
-
-**Location:** `src/components/selectors/TextureSelector.tsx`
-
-- **Skin Color Cards** - Always show V0 textures for consistency
-- **Body Variant Cards** - Show selected skin color
-- **Head Variant Cards** - Show selected skin color
-- Optional slider view (can toggle between cards/sliders)
-
-### File-Based Selector (G1 Female)
-
-**Location:** `src/components/selectors/TextureSelector.tsx` → `G1FemaleTextureSelector`
-
-- Body texture slider with filename display
-- Head texture slider with filename display
-- No skin color selector
-- No variant cards
+- **Body:** same as above (textures are discovered from the selected body directory and must include `_V{n}` to be discoverable).
+- **Head:** place files in `/public/assets/g1/female/textures/head/` (any filename is listable, but using `_V{n}` keeps the UI labels meaningful).
 
 ## Known Limitations
 
-1. **Build-time discovery** - New textures require rebuild/dev server restart
-2. **G1 Female restrictions** - No armor support, file-based only
-3. **Head texture variants must be absolute** - Female heads must use V137+ in filenames
+1. **Build-time discovery** - new assets require dev server restart/rebuild
+2. **G1 Female restrictions** - no armor support
+3. **Head texture variants must be absolute** - female heads must use V137+ in filenames
 4. **Texture format support** - PNG, TGA, JPG only (loaded in that order)
-5. **Multiple base names must be configured** - Not auto-detected from filesystem
+5. **Bodies are directory-scoped** - textures are selected only from the chosen body category directory
