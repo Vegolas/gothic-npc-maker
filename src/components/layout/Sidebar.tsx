@@ -1,6 +1,6 @@
 import { HeadOffsetSlider, SceneSelector } from '../selectors'
 import { ScrollArea } from '../ui/scroll-area'
-import { Settings, ChevronLeft, ChevronRight, Download, Upload, RotateCcw, FileCode, FileJson, Trash2 } from 'lucide-react'
+import { Settings, ChevronLeft, ChevronRight, Upload, RotateCcw, FileCode, FileJson, Trash2 } from 'lucide-react'
 import { useState, useRef } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
 import { useThumbnailStore } from '../../stores/thumbnailStore'

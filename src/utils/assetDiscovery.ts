@@ -16,22 +16,23 @@
 import type { GameVersion, Gender } from '../types/npc'
 
 // Discover all GLB files in the assets directory at build time
-const assetFiles = import.meta.glob('/public/assets/**/*.glb', { eager: false, as: 'url' })
+// NOTE: Use a relative glob on Windows to avoid drive-letter import specifiers during Vite build.
+const assetFiles = import.meta.glob('../../public/assets/**/*.glb', { eager: false, as: 'url' })
 
 // Discover all texture files (PNG, TGA, JPG)
-const textureFiles = import.meta.glob('/public/assets/**/*.{png,PNG,tga,TGA,jpg,JPG}', { eager: false, as: 'url' })
+const textureFiles = import.meta.glob('../../public/assets/**/*.{png,PNG,tga,TGA,jpg,JPG}', { eager: false, as: 'url' })
 
 // Discover text data files (guilds, tactics, etc.)
-const dataFiles = import.meta.glob('/public/assets/**/data/*.txt', { eager: false, as: 'raw' })
+const dataFiles = import.meta.glob('../../public/assets/**/data/*.txt', { eager: false, as: 'raw' })
 
 // Discover audio files for voice sets
-const audioFiles = import.meta.glob('/public/assets/**/*.{wav,WAV,mp3,MP3,ogg,OGG}', { eager: false, as: 'url' })
+const audioFiles = import.meta.glob('../../public/assets/**/*.{wav,WAV,mp3,MP3,ogg,OGG}', { eager: false, as: 'url' })
 
 // Discover scene GLB files
-const sceneFiles = import.meta.glob('/public/assets/**/scenes/*.glb', { eager: false, as: 'url' })
+const sceneFiles = import.meta.glob('../../public/assets/**/scenes/*.glb', { eager: false, as: 'url' })
 
 // Discover ZEN world files
-const zenFiles = import.meta.glob('/public/assets/**/worlds/*.{zen,ZEN}', { eager: false, as: 'url' })
+const zenFiles = import.meta.glob('../../public/assets/**/worlds/*.{zen,ZEN}', { eager: false, as: 'url' })
 
 /**
  * Parse body mesh path (supports both old and new directory structures)
@@ -200,7 +201,7 @@ export function discoverBodies(gameVersion: GameVersion, gender: Gender): Array<
         id: info.id,
         name: info.id.replace(/_/g, ' '),
         fileName: info.fileName,
-        path: path.replace('/public', ''),
+        path: path.replace(/^.*\/public/, ''),
         directory: info.directory
       })
     }
@@ -229,7 +230,7 @@ export function discoverHeads(gameVersion: GameVersion, gender: Gender): Array<{
         id: info.id,
         name: info.id.replace(/_/g, ' '),
         fileName: info.fileName,
-        path: path.replace('/public', '')
+        path: path.replace(/^.*\/public/, '')
       })
     }
   }
@@ -251,7 +252,7 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
   const armorPattern = `/public/assets/${gameVersion}/armors/`
 
   for (const [path] of Object.entries(assetFiles)) {
-    if (path.startsWith(armorPattern) && path.endsWith('.glb')) {
+    if (path.includes(armorPattern) && path.endsWith('.glb')) {
       const fileName = path.split('/').pop() || ''
       const id = fileName.replace('.glb', '')
 
@@ -259,7 +260,7 @@ export function discoverArmors(gameVersion: GameVersion): Array<{
         id,
         name: id.replace(/_/g, ' '),
         fileName,
-        path: path.replace('/public', '')
+        path: path.replace(/^.*\/public/, '')
       })
     }
   }
@@ -312,7 +313,7 @@ export function discoverBodyTextureVariants(
  * Discover available head variants for a specific skin color
  */
 export function discoverHeadVariantsForSkinColor(
-  headId: string,
+  _headId: string,
   skinColor: number,
   gameVersion: GameVersion,
   gender: Gender
@@ -336,7 +337,7 @@ export function discoverHeadVariantsForSkinColor(
  * Discover available texture variants for a head mesh
  */
 export function discoverHeadTextureVariants(
-  headId: string,
+  _headId: string,
   gameVersion: GameVersion,
   gender: Gender
 ): { variants: number; skinColors: number } {
@@ -383,7 +384,7 @@ export function findBodyTexture(
         info.directory.toUpperCase() === directory.toUpperCase() &&
         info.variant === variant &&
         info.skinColor === skinColor) {
-      return path.replace('/public', '')
+      return path.replace(/^.*\/public/, '')
     }
   }
 
@@ -416,7 +417,7 @@ export function findBodyTextures(
         info.directory.toUpperCase() === directory.toUpperCase() &&
         info.variant === variant &&
         info.skinColor === skinColor) {
-      matchingTextures.push(path.replace('/public', ''))
+      matchingTextures.push(path.replace(/^.*\/public/, ''))
     }
   }
 
@@ -427,7 +428,7 @@ export function findBodyTextures(
  * Find the actual texture file that exists for a head
  */
 export function findHeadTexture(
-  headId: string,
+  _headId: string,
   variant: number,
   skinColor: number,
   gameVersion: GameVersion,
@@ -440,7 +441,7 @@ export function findHeadTexture(
         info.gender === gender &&
         info.variant === variant &&
         info.skinColor === skinColor) {
-      return path.replace('/public', '')
+      return path.replace(/^.*\/public/, '')
     }
   }
 
@@ -481,7 +482,7 @@ export function discoverBodyTextureFiles(
  * Returns array of full texture filenames
  */
 export function discoverHeadTextureFiles(
-  headId: string,
+  _headId: string,
   gameVersion: GameVersion,
   gender: Gender
 ): string[] {
@@ -489,7 +490,7 @@ export function discoverHeadTextureFiles(
   const pattern = `/public/assets/${gameVersion}/${gender}/textures/head/`
 
   for (const [path] of Object.entries(textureFiles)) {
-    if (path.startsWith(pattern)) {
+    if (path.includes(pattern)) {
       const fileName = path.split('/').pop() || ''
       textures.push(fileName)
     }
@@ -510,7 +511,7 @@ export function assetExists(path: string): boolean {
  * Get all discovered asset paths (for debugging)
  */
 export function getAllAssetPaths(): string[] {
-  return Object.keys(assetFiles).map(path => path.replace('/public', ''))
+  return Object.keys(assetFiles).map(path => path.replace(/^.*\/public/, ''))
 }
 
 /**
@@ -577,7 +578,7 @@ export function discoverVoiceSets(gameVersion: GameVersion, gender: Gender): Arr
   const pattern = `/public/assets/${gameVersion}/${gender}/voices/`
 
   for (const [path] of Object.entries(audioFiles)) {
-    if (path.startsWith(pattern)) {
+    if (path.includes(pattern)) {
       // Extract voice ID from filename pattern: SVM_{id}_*.wav
       const match = path.match(/SVM_(\d+)_/)
       if (match) {
@@ -585,7 +586,7 @@ export function discoverVoiceSets(gameVersion: GameVersion, gender: Gender): Arr
         if (!voiceSets.has(voiceId)) {
           voiceSets.set(voiceId, [])
         }
-        voiceSets.get(voiceId)!.push(path.replace('/public', ''))
+        voiceSets.get(voiceId)!.push(path.replace(/^.*\/public/, ''))
       }
     }
   }
@@ -599,7 +600,7 @@ export function discoverVoiceSets(gameVersion: GameVersion, gender: Gender): Arr
  * Discover scenes from GLB files
  * Expects scene files at: /public/assets/scenes/*.glb
  */
-export function discoverScenes(gameVersion: GameVersion): Array<{
+export function discoverScenes(_gameVersion: GameVersion): Array<{
   id: string
   fileName: string
   path: string
@@ -608,13 +609,13 @@ export function discoverScenes(gameVersion: GameVersion): Array<{
   const pattern = `/public/assets/scenes/`
 
   for (const [path] of Object.entries(sceneFiles)) {
-    if (path.startsWith(pattern)) {
+    if (path.includes(pattern)) {
       const fileName = path.split('/').pop() || ''
       const id = fileName.replace('.glb', '')
       scenes.push({
         id,
         fileName,
-        path: path.replace('/public', '')
+        path: path.replace(/^.*\/public/, '')
       })
     }
   }
@@ -634,11 +635,11 @@ export function discoverZenFiles(gameVersion: GameVersion): Array<{
   const pattern = `/public/assets/${gameVersion}/worlds/`
 
   for (const [path] of Object.entries(zenFiles)) {
-    if (path.startsWith(pattern)) {
+    if (path.includes(pattern)) {
       const fileName = path.split('/').pop() || ''
       zens.push({
         fileName,
-        path: path.replace('/public', '')
+        path: path.replace(/^.*\/public/, '')
       })
     }
   }

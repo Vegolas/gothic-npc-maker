@@ -39,11 +39,11 @@ function SceneLoaderContent({
   onSpawnpointFound?: (position: THREE.Vector3, rotation: THREE.Euler) => void
   onCameraFound?: (position: THREE.Vector3, rotation: THREE.Euler) => void
 }) {
-  const { scene } = useGLTF(scenePath, true)
+  const { scene } = useGLTF(scenePath, true) as unknown as { scene: THREE.Object3D }
 
   // Clone the scene to avoid modifying the cached original
-  const clonedScene = useMemo(() => {
-    return scene.clone(true)
+  const clonedScene = useMemo<THREE.Object3D>(() => {
+    return scene.clone(true) as THREE.Object3D
   }, [scene])
 
   // Find spawnpoint and camera - useMemo to calculate once
@@ -77,8 +77,8 @@ function SceneLoaderContent({
       const quaternion = new THREE.Quaternion()
       const rotation = new THREE.Euler()
 
-      spawnpoint.getWorldPosition(position)
-      spawnpoint.getWorldQuaternion(quaternion)
+      ;(spawnpoint as unknown as THREE.Object3D).getWorldPosition(position)
+      ;(spawnpoint as unknown as THREE.Object3D).getWorldQuaternion(quaternion)
       rotation.setFromQuaternion(quaternion)
 
       result.spawn = { position, rotation }
@@ -91,8 +91,8 @@ function SceneLoaderContent({
       const quaternion = new THREE.Quaternion()
       const rotation = new THREE.Euler()
 
-      camera.getWorldPosition(position)
-      camera.getWorldQuaternion(quaternion)
+      ;(camera as unknown as THREE.Object3D).getWorldPosition(position)
+      ;(camera as unknown as THREE.Object3D).getWorldQuaternion(quaternion)
       rotation.setFromQuaternion(quaternion)
 
       result.camera = { position, rotation }

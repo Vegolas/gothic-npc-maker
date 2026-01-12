@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import * as Popover from '@radix-ui/react-popover'
-import { InputNew } from './input-new'
 
 interface SearchableSelectProps {
   label?: string
