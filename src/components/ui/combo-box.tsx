@@ -9,6 +9,7 @@ interface ComboBoxProps {
   suggestions: string[]
   placeholder?: string
   className?: string
+  alwaysShowAll?: boolean  // If true, always show all suggestions without filtering
 }
 
 /**
@@ -21,10 +22,12 @@ export function ComboBox({
   onChange,
   suggestions,
   placeholder = '',
-  className
+  className,
+  alwaysShowAll = false
 }: ComboBoxProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState(value)
+  const [isTyping, setIsTyping] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -33,10 +36,14 @@ export function ComboBox({
     setInputValue(value)
   }, [value])
 
-  // Filter suggestions based on input
-  const filteredSuggestions = suggestions.filter(s => 
-    s.toLowerCase().includes(inputValue.toLowerCase())
-  ).slice(0, 10) // Limit to 10 results
+  // Filter suggestions based on input only when typing (unless alwaysShowAll is true)
+  const filteredSuggestions = alwaysShowAll
+    ? suggestions // Always show all suggestions, no filtering
+    : isTyping
+    ? suggestions.filter(s =>
+        s.toLowerCase().includes(inputValue.toLowerCase())
+      ).slice(0, 10) // Limit to 10 results
+    : suggestions.slice(0, 10) // Show all when not typing (chevron click)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -54,17 +61,25 @@ export function ComboBox({
     setInputValue(newValue)
     onChange(newValue)
     setIsOpen(true)
+    setIsTyping(true) // User is typing, enable filtering
   }
 
   const handleSelectSuggestion = (suggestion: string) => {
     setInputValue(suggestion)
     onChange(suggestion)
     setIsOpen(false)
+    setIsTyping(false) // Reset typing state after selection
     inputRef.current?.focus()
   }
 
   const handleInputFocus = () => {
     setIsOpen(true)
+    setIsTyping(true) // Enable filtering when focusing on input
+  }
+
+  const handleChevronClick = () => {
+    setIsOpen(!isOpen)
+    setIsTyping(false) // Show all suggestions when clicking chevron
   }
 
   return (
@@ -96,7 +111,7 @@ export function ComboBox({
         />
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={handleChevronClick}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-muted hover:text-text transition-colors"
         >
           <ChevronDown className={cn(

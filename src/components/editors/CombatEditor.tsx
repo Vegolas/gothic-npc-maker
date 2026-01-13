@@ -2,13 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNPCStore } from '../../stores/npcStore'
 import { getFightTactics } from '../../data/fightTactics'
 import { InputNew } from '../ui/input-new'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select-new'
+import { ComboBox } from '../ui/combo-box'
 
 /**
  * Combat editor component
@@ -26,18 +20,13 @@ export function CombatEditor() {
 
   return (
     <div className="space-y-4">
-      <Select value={config.fightTactic} onValueChange={(value) => store.setFightTactic(value)}>
-        <SelectTrigger label="Fight Tactic">
-          <SelectValue placeholder="Select tactic" />
-        </SelectTrigger>
-        <SelectContent>
-          {tactics.map((tacticId) => (
-            <SelectItem key={tacticId} value={tacticId}>
-              {tacticId}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <ComboBox
+        label="Fight Tactic"
+        value={config.fightTactic}
+        onChange={(value) => store.setFightTactic(value)}
+        suggestions={tactics}
+        placeholder="Type or select tactic"
+      />
 
       <InputNew
         label="Default Waypoint"

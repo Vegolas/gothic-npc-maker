@@ -1,6 +1,6 @@
-import { VisualEditor, IdentityEditor, RoutineEditor } from '../editors'
+import { VisualEditor, IdentityEditor, RoutineEditor, EquipmentEditor } from '../editors'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs'
-import { Palette, User, Clock } from 'lucide-react'
+import { Palette, User, Clock, Package } from 'lucide-react'
 
 /**
  * Main configuration panel containing visual, identity, and routine tabs.
@@ -20,6 +20,10 @@ export function BottomPanel() {
               <User className="w-3.5 h-3.5" />
               Identity
             </TabsTrigger>
+            <TabsTrigger value="equipment" className="gap-2">
+              <Package className="w-3.5 h-3.5" />
+              Equipment
+            </TabsTrigger>
             <TabsTrigger value="routine" className="gap-2">
               <Clock className="w-3.5 h-3.5" />
               Routine
@@ -37,6 +41,12 @@ export function BottomPanel() {
           <TabsContent value="identity" className="absolute inset-0 m-0 overflow-y-auto">
             <div className="p-5">
               <IdentityEditor />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="equipment" className="absolute inset-0 m-0 overflow-y-auto">
+            <div className="p-5">
+              <EquipmentEditor />
             </div>
           </TabsContent>
 

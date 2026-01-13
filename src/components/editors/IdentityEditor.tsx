@@ -7,6 +7,7 @@ import { InputNew } from '../ui/input-new'
 import { SliderNew } from '../ui/slider-new'
 import { VoiceSelector } from '../selectors'
 import { Separator } from '../ui/separator'
+import { ComboBox } from '../ui/combo-box'
 import {
   Select,
   SelectContent,
@@ -206,18 +207,13 @@ export function IdentityEditor() {
         <h3 className="text-xs font-display text-ember uppercase tracking-wider mb-3">
           Combat
         </h3>
-        <Select value={config.fightTactic} onValueChange={(value) => store.setFightTactic(value)}>
-          <SelectTrigger label="Fight Tactic">
-            <SelectValue placeholder="Select tactic" />
-          </SelectTrigger>
-          <SelectContent>
-            {tactics.map((tacticId) => (
-              <SelectItem key={tacticId} value={tacticId}>
-                {tacticId}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <ComboBox
+          label="Fight Tactic"
+          value={config.fightTactic}
+          onChange={(value) => store.setFightTactic(value)}
+          suggestions={tactics}
+          placeholder="Type or select tactic"
+        />
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { NPCConfig, Gender, GameVersion, RoutineEntry } from '../types/npc'
+import type { NPCConfig, Gender, GameVersion, RoutineEntry, EquipmentItem } from '../types/npc'
 import { DEFAULT_NPC_CONFIG } from '../types/npc'
 import { discoverBodies, discoverHeads, discoverBodyTextureFiles, discoverHeadTextureFiles, discoverHeadVariantsForSkinColor } from '../utils/assetDiscovery'
 import { getDefaultVoice, getHeadOffsets, FATNESS_RANGE, DEFAULT_TEXTURE_INDICES } from '../config/constants'
@@ -54,6 +54,12 @@ interface NPCStore {
   setWaypoint: (waypoint: string) => void
   setDailyRoutine: (routine: RoutineEntry[]) => void
   setZenWorldFile: (file: string | null) => void
+
+  // Equipment actions
+  setEquipment: (equipment: EquipmentItem[]) => void
+  addEquipmentItem: (item: EquipmentItem) => void
+  removeEquipmentItem: (id: string) => void
+  updateEquipmentItem: (id: string, updates: Partial<EquipmentItem>) => void
 
   // Bulk actions
   resetConfig: () => void
@@ -294,6 +300,30 @@ export const useNPCStore = create<NPCStore>()(
   setZenWorldFile: (zenWorldFile) =>
     set((state) => ({ config: { ...state.config, zenWorldFile } })),
 
+  // Equipment setters
+  setEquipment: (equipment) =>
+    set((state) => ({ config: { ...state.config, equipment } })),
+
+  addEquipmentItem: (item) =>
+    set((state) => ({
+      config: { ...state.config, equipment: [...state.config.equipment, item] },
+    })),
+
+  removeEquipmentItem: (id) =>
+    set((state) => ({
+      config: { ...state.config, equipment: state.config.equipment.filter((item) => item.id !== id) },
+    })),
+
+  updateEquipmentItem: (id, updates) =>
+    set((state) => ({
+      config: {
+        ...state.config,
+        equipment: state.config.equipment.map((item) =>
+          item.id === id ? { ...item, ...updates } : item
+        ),
+      },
+    })),
+
   // Reset to defaults
   resetConfig: () =>
     set({ config: { ...DEFAULT_NPC_CONFIG } }),
@@ -301,12 +331,30 @@ export const useNPCStore = create<NPCStore>()(
   // Load partial config (useful for presets)
   loadConfig: (newConfig) =>
     set((state) => ({
-      config: { ...state.config, ...newConfig },
+      config: {
+        ...state.config,
+        ...newConfig,
+        // Ensure equipment array exists for backwards compatibility
+        equipment: newConfig.equipment ?? state.config.equipment ?? [],
+      },
     })),
 }),
     {
       name: 'npc-creator-storage', // localStorage key
-      version: 1, // Version for migration if needed
+      version: 2, // Version for migration if needed
+      migrate: (persistedState: any, version: number) => {
+        // Migrate from version 1 to 2: add equipment field
+        if (version < 2) {
+          return {
+            ...persistedState,
+            config: {
+              ...persistedState.config,
+              equipment: persistedState.config?.equipment ?? [],
+            },
+          }
+        }
+        return persistedState
+      },
     }
   )
 )

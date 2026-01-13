@@ -1,0 +1,21 @@
+# Item script files index
+# Add one .d filename per line (relative to this directory)
+Melee_weapons.d
+Ranged_weapons.d
+Weapons.d
+Amulette.d
+Animaltrophy.d
+Armor.d
+Artifacts.d
+Food.d
+MissionItems_1.d
+MissionItems_2.d
+MissionItems_3.d
+MissionItems_4.d
+MissionItems_5.d
+MissionItems_6.d
+Plants.d
+Potions.d
+Ringe.d
+Written.d
+MISC.D

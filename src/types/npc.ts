@@ -30,6 +30,16 @@ export interface RoutineEntry {
 }
 
 /**
+ * Equipment item entry
+ */
+export interface EquipmentItem {
+  id: string
+  functionType: string  // 'EquipItem', 'CreateInvItem', 'CreateInvItems'
+  itemName: string      // Item instance name (e.g., 'ItMw_1H_Sword_05')
+  count: number         // Only used for CreateInvItems
+}
+
+/**
  * ZEN world file information
  */
 export interface ZenWorldFile {
@@ -86,6 +96,9 @@ export interface NPCConfig {
   dailyRoutine: RoutineEntry[]  // Daily routine entries
   waypoint: string          // Default waypoint for daily routine
   zenWorldFile: string | null   // Selected ZEN world file for waypoint reference
+
+  // Equipment
+  equipment: EquipmentItem[]    // Equipment and inventory items
 }
 
 /**
@@ -127,6 +140,8 @@ export const DEFAULT_NPC_CONFIG: NPCConfig = {
   waypoint: 'START',
   dailyRoutine: [],
   zenWorldFile: null,
+
+  equipment: [],
 }
 
 /**

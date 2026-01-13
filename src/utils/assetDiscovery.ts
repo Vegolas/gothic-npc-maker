@@ -14,6 +14,7 @@
  */
 
 import type { GameVersion, Gender } from '../types/npc'
+import { parseItemScript, type ParsedItem } from './itemParser'
 
 /**
  * Convert internal asset path to public URL with base
@@ -529,11 +530,12 @@ export function getAllAssetPaths(): string[] {
  * Format: one guild ID per line (e.g., "GIL_NONE", "GIL_PAL")
  */
 export async function discoverGuilds(gameVersion: GameVersion): Promise<string[]> {
-  const path = `/public/assets/${gameVersion}/data/guilds.txt`
+  const path = `../../public/assets/${gameVersion}/data/guilds.txt`
   const loader = dataFiles[path]
 
   if (!loader) {
     console.warn(`Guilds file not found: ${path}`)
+    console.warn('Available data files:', Object.keys(dataFiles))
     return []
   }
 
@@ -555,11 +557,12 @@ export async function discoverGuilds(gameVersion: GameVersion): Promise<string[]
  * Format: one tactic ID per line (e.g., "FAI_HUMAN_COWARD", "FAI_HUMAN_STRONG")
  */
 export async function discoverFightTactics(gameVersion: GameVersion): Promise<string[]> {
-  const path = `/public/assets/${gameVersion}/data/tactics.txt`
+  const path = `../../public/assets/${gameVersion}/data/tactics.txt`
   const loader = dataFiles[path]
-    ``
+
   if (!loader) {
     console.warn(`Tactics file not found: ${path}`)
+    console.warn('Available data files:', Object.keys(dataFiles))
     return []
   }
 
@@ -573,6 +576,54 @@ export async function discoverFightTactics(gameVersion: GameVersion): Promise<st
     console.error(`Failed to load tactics from ${path}:`, err)
     return []
   }
+}
+
+/**
+ * Discover and parse items from Daedalus script files
+ * Dynamically scans the _index.txt file to find all .d files in /public/assets/{g1|g2}/data/items/
+ * Returns parsed item data without caching (fetches fresh each time using fetch API)
+ */
+export async function discoverItems(gameVersion: GameVersion): Promise<ParsedItem[]> {
+  const allItems: ParsedItem[] = []
+  const basePath = `${import.meta.env.BASE_URL}assets/${gameVersion}/data/items/`
+  const indexUrl = `${basePath}_index.txt`
+
+  // Fetch the index file to get list of all .d files
+  let itemScriptPaths: string[] = []
+  try {
+    const indexResponse = await fetch(indexUrl)
+    if (indexResponse.ok) {
+      const indexContent = await indexResponse.text()
+      // Parse index file: one filename per line, ignore comments and empty lines
+      itemScriptPaths = indexContent
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'))
+    } else {
+      console.warn(`Item index file not found: ${indexUrl}`)
+      return []
+    }
+  } catch (err) {
+    console.error(`Failed to load item index ${indexUrl}:`, err)
+    return []
+  }
+
+  // Fetch and parse each file listed in the index
+  for (const relativePath of itemScriptPaths) {
+    const url = `${basePath}${relativePath}`
+    try {
+      const response = await fetch(url)
+      if (response.ok) {
+        const content = await response.text()
+        const items = parseItemScript(content)
+        allItems.push(...items)
+      }
+    } catch (err) {
+      console.debug(`Could not load item script ${url}:`, err)
+    }
+  }
+
+  return allItems
 }
 
 /**

@@ -72,7 +72,19 @@ export function generateDaedalusScript(config: NPCConfig): string {
     hitpointsMax,
     fightTactic,
     dailyRoutine,
+    equipment,
   } = config
+
+  // Generate equipment entries
+  const equipmentEntries = equipment && equipment.length > 0
+    ? equipment.map(item => {
+        if (item.functionType === 'CreateInvItems') {
+          return `    ${item.functionType}(self, ${item.itemName}, ${item.count});`
+        } else {
+          return `    ${item.functionType}(self, ${item.itemName});`
+        }
+      }).join('\n')
+    : ''
 
   // Generate routine entries
   const routineEntries = dailyRoutine.length > 0
@@ -122,7 +134,7 @@ instance ${instanceName} (Npc_Default)
     Npc_SetTalentSkill(self, NPC_TALENT_2H, 0);
     Npc_SetTalentSkill(self, NPC_TALENT_BOW, 0);
     Npc_SetTalentSkill(self, NPC_TALENT_CROSSBOW, 0);
-
+${equipmentEntries ? '\n    // Equipment\n' + equipmentEntries + '\n' : ''}
     // Daily routine
     daily_routine = Rtn_Start_${instanceName};
 };
